@@ -30,17 +30,17 @@ TAR_CONTENT := $(KBUILD_ALLDIRS) .config .scmversion Makefile \
                Kbuild Kconfig COPYING $(wildcard localversion*)
 MKSPEC     := $(srctree)/scripts/package/mkspec
 
-quiet_cmd_src_tar = TAR     $(2).tar.gz
-      cmd_src_tar = \
-if test "$(objtree)" != "$(srctree)"; then \
-	echo "Building source tarball is not possible outside the"; \
-	echo "kernel source tree. Don't set KBUILD_OUTPUT, or use the"; \
-	echo "binrpm-pkg or bindeb-pkg target instead."; \
-	false; \
-fi ; \
+#quiet_cmd_src_tar = TAR     $(2).tar.gz
+#      cmd_src_tar = \
+#if test "$(objtree)" != "$(srctree)"; then \
+#	echo "Building source tarball is not possible outside the"; \
+#	echo "kernel source tree. Don't set KBUILD_OUTPUT, or use the"; \
+#	echo "binrpm-pkg or bindeb-pkg target instead."; \
+#	false; \
+#fi ; \
 $(srctree)/scripts/setlocalversion --save-scmversion; \
-tar -cz $(RCS_TAR_IGNORE) -f $(2).tar.gz \
-	--transform 's:^:$(2)/:S' $(TAR_CONTENT) $(3); \
+#tar -cz $(RCS_TAR_IGNORE) -f $(2).tar.gz \
+#	--transform 's:^:$(2)/:S' $(TAR_CONTENT) $(3); \
 rm -f $(objtree)/.scmversion
 
 # rpm-pkg
@@ -82,7 +82,7 @@ quiet_cmd_builddeb = BUILDDEB
 		$(srctree)/scripts/package/builddeb $@
 
 deb-pkg: FORCE
-	$(MAKE) clean
+#	$(MAKE) clean
 	$(call cmd,src_tar,$(KDEB_SOURCENAME))
 	$(MAKE) KBUILD_SRC=
 	+$(call cmd,builddeb)
