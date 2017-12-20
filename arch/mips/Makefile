@@ -101,7 +101,7 @@ LDFLAGS_vmlinux			+= --emit-relocs
 endif
 
 #
-# pass -msoft-float to GAS if it supports it.  However on newer binutils
+# pass to GAS if it supports it.  However on newer binutils
 # (specifically newer than 2.24.51.20140728) we then also need to explicitly
 # set ".set hardfloat" in all files which manipulate floating point registers.
 #
