@@ -115,3 +115,10 @@ all.config
 
 # Kdevelop4
 *.kdev4
+
+# Custom Files to ignore
+clean
+clean.sh
+edit_kernel.sh
+build_kernel.sh
+dmesg.sh
