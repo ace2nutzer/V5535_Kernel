@@ -301,9 +301,18 @@ HOST_LFS_LIBS := $(shell getconf LFS_LIBS)
 
 HOSTCC       = gcc
 HOSTCXX      = g++
+
 HOSTCFLAGS   := -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 \
-		-fomit-frame-pointer -std=gnu89 $(HOST_LFS_CFLAGS)
-HOSTCXXFLAGS := -O2 $(HOST_LFS_CFLAGS)
+		-fomit-frame-pointer -std=gnu89 $(HOST_LFS_CFLAGS) -m64 \
+		-Werror=return-type -fno-strict-aliasing -fno-strict-overflow \
+		-DNDEBUG -pipe -march=core2 -mtune=core2 -mhard-float \
+		-mfpmath=sse -ftree-vectorize
+
+HOSTCXXFLAGS := -O2 $(HOST_LFS_CFLAGS) -fomit-frame-pointer \
+		-Werror=return-type -fno-strict-aliasing -fno-strict-overflow \
+		-DNDEBUG -pipe -m64 -march=core2 -mtune=core2 -mhard-float \
+		-mfpmath=sse -ftree-vectorize
+
 HOSTLDFLAGS  := $(HOST_LFS_LDFLAGS)
 HOST_LOADLIBES := $(HOST_LFS_LIBS)
 
@@ -392,11 +401,25 @@ LINUXINCLUDE    := \
 		$(USERINCLUDE)
 
 KBUILD_AFLAGS   := -D__ASSEMBLY__
+
 KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common -fshort-wchar \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
-		   -std=gnu89
+		   -std=gnu89 \
+		   -Werror=return-type \
+		   -D_FORTIFY_SOURCE=1 \
+		   -march=core2 \
+		   -mtune=core2 \
+		   -mhard-float \
+		   -mfpmath=sse \
+		   -ftree-vectorize \
+		   -mno-red-zone \
+		   -mcmodel=kernel \
+		   -m64 \
+		   -DNDEBUG \
+		   -pipe
+
 KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
@@ -619,6 +642,10 @@ all: vmlinux
 
 KBUILD_CFLAGS	+= $(call cc-option,-fno-PIE)
 KBUILD_AFLAGS	+= $(call cc-option,-fno-PIE)
+
+KBUILD_CFLAGS	+= $(call cc-option,-fno-PIC)
+KBUILD_AFLAGS	+= $(call cc-option,-fno-PIC)
+
 CFLAGS_GCOV	:= -fprofile-arcs -ftest-coverage -fno-tree-loop-im $(call cc-disable-warning,maybe-uninitialized,)
 CFLAGS_KCOV	:= $(call cc-option,-fsanitize-coverage=trace-pc,)
 export CFLAGS_GCOV CFLAGS_KCOV
@@ -801,9 +828,6 @@ KBUILD_CFLAGS += $(call cc-disable-warning, pointer-sign)
 
 # disable invalid "can't wrap" optimizations for signed / pointers
 KBUILD_CFLAGS	+= $(call cc-option,-fno-strict-overflow)
-
-# conserve stack if available
-KBUILD_CFLAGS   += $(call cc-option,-fconserve-stack)
 
 # disallow errors like 'EXPORT_GPL(foo);' with missing header
 KBUILD_CFLAGS   += $(call cc-option,-Werror=implicit-int)

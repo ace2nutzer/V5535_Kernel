@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0
 # Unified Makefile for i386 and x86_64
 
+KBUILD_CFLAGS += -mfpmath=387 -mpreferred-stack-boundary=3 -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-ssse3
+
 # select defconfig based on actual architecture
 ifeq ($(ARCH),x86)
   ifeq ($(shell uname -m),x86_64)
@@ -12,16 +14,6 @@ else
         KBUILD_DEFCONFIG := $(ARCH)_defconfig
 endif
 
-# For gcc stack alignment is specified with -mpreferred-stack-boundary,
-# clang has the option -mstack-alignment for that purpose.
-ifneq ($(call cc-option, -mpreferred-stack-boundary=4),)
-      cc_stack_align4 := -mpreferred-stack-boundary=2
-      cc_stack_align8 := -mpreferred-stack-boundary=3
-else ifneq ($(call cc-option, -mstack-alignment=16),)
-      cc_stack_align4 := -mstack-alignment=4
-      cc_stack_align8 := -mstack-alignment=8
-endif
-
 # How to compile the 16-bit code.  Note we always compile for -march=i386;
 # that way we can complain to the user if the CPU is insufficient.
 #
@@ -31,15 +23,16 @@ endif
 CODE16GCC_CFLAGS := -m32 -Wa,$(srctree)/arch/x86/boot/code16gcc.h
 M16_CFLAGS	 := $(call cc-option, -m16, $(CODE16GCC_CFLAGS))
 
-REALMODE_CFLAGS	:= $(M16_CFLAGS) -g -D__KERNEL__ \
-		   -DDISABLE_BRANCH_PROFILING \
-		   -Wall -Wstrict-prototypes -march=i386 -mregparm=3 \
-		   -fno-strict-aliasing -fomit-frame-pointer -fno-pic \
-		   -mno-mmx -mno-sse
+REALMODE_CFLAGS	:= $(M16_CFLAGS) -O1 -D__KERNEL__ \
+		   -DDISABLE_BRANCH_PROFILING -pipe  \
+		   -Wall -Wstrict-prototypes -mregparm=3 \
+		   -fno-strict-aliasing -fomit-frame-pointer -fno-pic
 
 REALMODE_CFLAGS += $(call __cc-option, $(CC), $(REALMODE_CFLAGS), -ffreestanding)
 REALMODE_CFLAGS += $(call __cc-option, $(CC), $(REALMODE_CFLAGS), -fno-stack-protector)
-REALMODE_CFLAGS += $(call __cc-option, $(CC), $(REALMODE_CFLAGS), $(cc_stack_align4))
+REALMODE_CFLAGS += -std=gnu89 -mcmodel=small -ftree-vectorize -DNDEBUG
+REALMODE_CFLAGS += -march=core2 -mtune=core2 -mhard-float
+REALMODE_CFLAGS += -mfpmath=387 -mpreferred-stack-boundary=3 -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-ssse3
 export REALMODE_CFLAGS
 
 # BITS is used as extension for files which are available in a 32 bit
@@ -51,16 +44,6 @@ ifdef CONFIG_X86_NEED_RELOCS
         LDFLAGS_vmlinux := --emit-relocs
 endif
 
-#
-# Prevent GCC from generating any FP code by mistake.
-#
-# This must happen before we try the -mpreferred-stack-boundary, see:
-#
-#    https://gcc.gnu.org/bugzilla/show_bug.cgi?id=53383
-#
-KBUILD_CFLAGS += -mno-sse -mno-mmx -mno-sse2 -mno-3dnow
-KBUILD_CFLAGS += $(call cc-option,-mno-avx,)
-
 ifeq ($(CONFIG_X86_32),y)
         BITS := 32
         UTS_MACHINE := i386
@@ -71,15 +54,6 @@ ifeq ($(CONFIG_X86_32),y)
         KBUILD_CFLAGS += $(biarch)
 
         KBUILD_CFLAGS += -mregparm=3 -freg-struct-return
-
-        # Never want PIC in a 32-bit kernel, prevent breakage with GCC built
-        # with nonstandard options
-        KBUILD_CFLAGS += -fno-pic
-
-        # Align the stack to the register width instead of using the default
-        # alignment of 16 bytes. This reduces stack usage and the number of
-        # alignment instructions.
-        KBUILD_CFLAGS += $(call cc-option,$(cc_stack_align4))
 
         # Disable unit-at-a-time mode on pre-gcc-4.0 compilers, it makes gcc use
         # a lot more stack due to the lack of sharing of stacklots:
@@ -101,25 +75,6 @@ else
         KBUILD_AFLAGS += -m64
         KBUILD_CFLAGS += -m64
 
-        # Align jump targets to 1 byte, not the default 16 bytes:
-        KBUILD_CFLAGS += $(call cc-option,-falign-jumps=1)
-
-        # Pack loops tightly as well:
-        KBUILD_CFLAGS += $(call cc-option,-falign-loops=1)
-
-        # Don't autogenerate traditional x87 instructions
-        KBUILD_CFLAGS += $(call cc-option,-mno-80387)
-        KBUILD_CFLAGS += $(call cc-option,-mno-fp-ret-in-387)
-
-        # By default gcc and clang use a stack alignment of 16 bytes for x86.
-        # However the standard kernel entry on x86-64 leaves the stack on an
-        # 8-byte boundary. If the compiler isn't informed about the actual
-        # alignment it will generate extra alignment instructions for the
-        # default alignment which keep the stack *mis*aligned.
-        # Furthermore an alignment to the register width reduces stack usage
-        # and the number of alignment instructions.
-        KBUILD_CFLAGS += $(call cc-option,$(cc_stack_align8))
-
 	# Use -mskip-rax-setup if supported.
 	KBUILD_CFLAGS += $(call cc-option,-mskip-rax-setup)
 
@@ -127,8 +82,6 @@ else
         cflags-$(CONFIG_MK8) += $(call cc-option,-march=k8)
         cflags-$(CONFIG_MPSC) += $(call cc-option,-march=nocona)
 
-        cflags-$(CONFIG_MCORE2) += \
-                $(call cc-option,-march=core2,$(call cc-option,-mtune=generic))
 	cflags-$(CONFIG_MATOM) += $(call cc-option,-march=atom) \
 		$(call cc-option,-mtune=atom,$(call cc-option,-mtune=generic))
         cflags-$(CONFIG_GENERIC_CPU) += $(call cc-option,-mtune=generic)

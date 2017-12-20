@@ -21,9 +21,6 @@ export LDS_EXTRA
 # First of all, tune CFLAGS for the specific CPU. This actually sets cflags-y.
 include arch/x86/Makefile_32.cpu
 
-# prevent gcc from keeping the stack 16 byte aligned. Taken from i386.
-cflags-y += $(call cc-option,-mpreferred-stack-boundary=2)
-
 # Prevent sprintf in nfsd from being converted to strcpy and resulting in
 # an unresolved reference.
 cflags-y += -ffreestanding
