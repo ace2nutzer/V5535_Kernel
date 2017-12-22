@@ -26,7 +26,7 @@ KCOV_INSTRUMENT		:= n
 targets := vmlinux vmlinux.bin vmlinux.bin.gz vmlinux.bin.bz2 vmlinux.bin.lzma \
 	vmlinux.bin.xz vmlinux.bin.lzo vmlinux.bin.lz4
 
-KBUILD_CFLAGS := -m$(BITS) -D__KERNEL__ -O2
+KBUILD_CFLAGS := -m$(BITS) -D__KERNEL__ -O2 -fno-strict-overflow
 KBUILD_CFLAGS += -fno-strict-aliasing -std=gnu89 -mcmodel=small
 KBUILD_CFLAGS += -DDISABLE_BRANCH_PROFILING -pipe
 KBUILD_CFLAGS += $(cflags-y) -ftree-vectorize -DNDEBUG

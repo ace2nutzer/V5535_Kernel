@@ -24,13 +24,13 @@ CODE16GCC_CFLAGS := -m32 -Wa,$(srctree)/arch/x86/boot/code16gcc.h
 M16_CFLAGS	 := $(call cc-option, -m16, $(CODE16GCC_CFLAGS))
 
 REALMODE_CFLAGS	:= $(M16_CFLAGS) -O1 -D__KERNEL__ \
-		   -DDISABLE_BRANCH_PROFILING -pipe  \
+		   -DDISABLE_BRANCH_PROFILING \
 		   -Wall -Wstrict-prototypes -mregparm=3 \
 		   -fno-strict-aliasing -fomit-frame-pointer -fno-pic
 
 REALMODE_CFLAGS += $(call __cc-option, $(CC), $(REALMODE_CFLAGS), -ffreestanding)
 REALMODE_CFLAGS += $(call __cc-option, $(CC), $(REALMODE_CFLAGS), -fno-stack-protector)
-REALMODE_CFLAGS += -std=gnu89 -mcmodel=small -ftree-vectorize -DNDEBUG
+REALMODE_CFLAGS += -std=gnu89 -ftree-vectorize -DNDEBUG -fno-strict-overflow
 REALMODE_CFLAGS += -march=core2 -mtune=core2 -mhard-float
 REALMODE_CFLAGS += -mfpmath=387 -mpreferred-stack-boundary=3 -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-ssse3
 export REALMODE_CFLAGS
