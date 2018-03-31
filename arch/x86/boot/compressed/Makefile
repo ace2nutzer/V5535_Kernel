@@ -28,14 +28,11 @@ targets := vmlinux vmlinux.bin vmlinux.bin.gz vmlinux.bin.bz2 vmlinux.bin.lzma \
 
 KBUILD_CFLAGS := -m$(BITS) -D__KERNEL__ -O2 -fno-strict-overflow
 KBUILD_CFLAGS += -fno-strict-aliasing -std=gnu89 -mcmodel=small
-KBUILD_CFLAGS += -DDISABLE_BRANCH_PROFILING -pipe
+KBUILD_CFLAGS += -DDISABLE_BRANCH_PROFILING -pipe $(call cc-option, -fPIE, -fPIC)
 KBUILD_CFLAGS += $(cflags-y) -ftree-vectorize -DNDEBUG
 KBUILD_CFLAGS += $(call cc-option,-ffreestanding) -fomit-frame-pointer
 KBUILD_CFLAGS += $(call cc-option,-fno-stack-protector)
 KBUILD_CFLAGS += $(call cc-disable-warning, address-of-packed-member)
-
-KBUILD_CFLAGS += -fPIC -fPIE
-KBUILD_AFLAGS += -fPIC -fPIE
 
 KBUILD_CFLAGS += -march=core2 -mtune=core2 -mhard-float -m64
 KBUILD_CFLAGS += -mfpmath=387 -mpreferred-stack-boundary=3 -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-ssse3
