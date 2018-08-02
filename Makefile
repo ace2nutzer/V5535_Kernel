@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0
 VERSION = 4
 PATCHLEVEL = 14
-SUBLEVEL = 55
+SUBLEVEL = 59
 EXTRAVERSION =
 NAME = Petit Gorille
 
@@ -366,12 +366,12 @@ HOSTCXX      = g++
 
 HOSTCFLAGS   := -Wall -Werror -Wfatal-errors -Wmissing-prototypes -Wstrict-prototypes -O2 \
 		-fomit-frame-pointer -std=gnu89 $(HOST_LFS_CFLAGS) -m64 \
-		-fno-strict-aliasing -fno-strict-overflow -Wnoformat-overflow \
+		-fno-strict-aliasing -fno-strict-overflow -Wno-format-overflow \
 		-DNDEBUG -pipe -march=core2 -mtune=core2 -mhard-float \
 		-mfpmath=sse -ftree-vectorize
 
 HOSTCXXFLAGS := -Wall -Werror -Wfatal-errors -O2 $(HOST_LFS_CFLAGS) -fomit-frame-pointer \
-		-fno-strict-aliasing -fno-strict-overflow -Wnoformat-overflow \
+		-fno-strict-aliasing -fno-strict-overflow -Wno-format-overflow \
 		-DNDEBUG -pipe -m64 -march=core2 -mtune=core2 -mhard-float \
 		-mfpmath=sse -ftree-vectorize
 
@@ -428,7 +428,7 @@ KBUILD_AFLAGS   := -D__ASSEMBLY__
 KBUILD_CFLAGS   := -Wall -Werror -Wfatal-errors -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common -fshort-wchar \
 		   -Wno-format-security \
-		   -Wnoformat-overflow \
+		   -Wno-format-overflow \
 		   -std=gnu89 \
 		   -D_FORTIFY_SOURCE=1 \
 		   -march=core2 \
@@ -664,6 +664,7 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning,frame-address,)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, format-truncation)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, format-overflow)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, int-in-bool-context)
+KBUILD_CFLAGS	+= $(call cc-disable-warning, attribute-alias)
 
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS	+= $(call cc-option,-Oz,-Os)
