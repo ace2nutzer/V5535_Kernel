@@ -364,14 +364,14 @@ HOST_LFS_LIBS := $(shell getconf LFS_LIBS)
 HOSTCC       = gcc
 HOSTCXX      = g++
 
-HOSTCFLAGS   := -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 \
+HOSTCFLAGS   := -Wall -Werror -Wfatal-errors -Wmissing-prototypes -Wstrict-prototypes -O2 \
 		-fomit-frame-pointer -std=gnu89 $(HOST_LFS_CFLAGS) -m64 \
-		-Werror=return-type -fno-strict-aliasing -fno-strict-overflow \
+		-fno-strict-aliasing -fno-strict-overflow -Wnoformat-overflow \
 		-DNDEBUG -pipe -march=core2 -mtune=core2 -mhard-float \
 		-mfpmath=sse -ftree-vectorize
 
-HOSTCXXFLAGS := -O2 $(HOST_LFS_CFLAGS) -fomit-frame-pointer \
-		-Werror=return-type -fno-strict-aliasing -fno-strict-overflow \
+HOSTCXXFLAGS := -Wall -Werror -Wfatal-errors -O2 $(HOST_LFS_CFLAGS) -fomit-frame-pointer \
+		-fno-strict-aliasing -fno-strict-overflow -Wnoformat-overflow \
 		-DNDEBUG -pipe -m64 -march=core2 -mtune=core2 -mhard-float \
 		-mfpmath=sse -ftree-vectorize
 
@@ -425,12 +425,11 @@ LINUXINCLUDE    := \
 
 KBUILD_AFLAGS   := -D__ASSEMBLY__
 
-KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
+KBUILD_CFLAGS   := -Wall -Werror -Wfatal-errors -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common -fshort-wchar \
-		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
+		   -Wnoformat-overflow \
 		   -std=gnu89 \
-		   -Werror=return-type \
 		   -D_FORTIFY_SOURCE=1 \
 		   -march=core2 \
 		   -mtune=core2 \
