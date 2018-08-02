@@ -426,9 +426,8 @@ LINUXINCLUDE    := \
 KBUILD_AFLAGS   := -D__ASSEMBLY__
 
 KBUILD_CFLAGS   := -Wall -Werror -Wfatal-errors -Wundef -Wstrict-prototypes -Wno-trigraphs \
-		   -fno-strict-aliasing -fno-common -fshort-wchar \
-		   -Wno-format-security \
-		   -Wno-format-overflow \
+		   -fno-strict-aliasing -fno-common -fshort-wchar -Wno-stringop-truncation \
+		   -Wno-format-security -Wno-stringop-overflow -Wno-packed-not-aligned \
 		   -std=gnu89 \
 		   -D_FORTIFY_SOURCE=1 \
 		   -march=core2 \
