@@ -83,7 +83,6 @@ config CRYPTO_RNG2
 
 config CRYPTO_RNG_DEFAULT
 	tristate
-	select CRYPTO_DRBG_MENU
 
 config CRYPTO_AKCIPHER2
 	tristate
