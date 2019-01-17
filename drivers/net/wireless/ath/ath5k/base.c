@@ -2710,7 +2710,9 @@ ath5k_stop_locked(struct ath5k_hw *ah)
 	ieee80211_stop_queues(ah->hw);
 
 	if (!test_bit(ATH_STAT_INVALID, ah->status)) {
+#ifdef CONFIG_ATH5K_LEDS
 		ath5k_led_off(ah);
+#endif
 		ath5k_hw_set_imr(ah, 0);
 		synchronize_irq(ah->irq);
 		ath5k_rx_stop(ah);
@@ -3108,7 +3110,9 @@ ath5k_init(struct ieee80211_hw *hw)
 	if (!ath_is_world_regd(regulatory))
 		regulatory_hint(hw->wiphy, regulatory->alpha2);
 
+#ifdef CONFIG_ATH5K_LEDS
 	ath5k_init_leds(ah);
+#endif
 
 	ath5k_sysfs_register(ah);
 
@@ -3145,7 +3149,9 @@ ath5k_deinit_ah(struct ath5k_hw *ah)
 	ath5k_desc_free(ah);
 	ath5k_txq_release(ah);
 	ath5k_hw_release_tx_queue(ah, ah->bhalq);
+#ifdef CONFIG_ATH5K_LEDS
 	ath5k_unregister_leds(ah);
+#endif
 
 	ath5k_sysfs_unregister(ah);
 	/*

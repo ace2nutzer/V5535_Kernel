@@ -2,9 +2,6 @@ config ATH5K
 	tristate "Atheros 5xxx wireless cards support"
 	depends on (PCI || ATH25) && MAC80211
 	select ATH_COMMON
-	select MAC80211_LEDS
-	select LEDS_CLASS
-	select NEW_LEDS
 	select ATH5K_AHB if ATH25
 	select ATH5K_PCI if !ATH25
 	---help---
@@ -20,6 +17,17 @@ config ATH5K
 
 	  If you choose to build a module, it'll be called ath5k. Say M if
 	  unsure.
+
+config ATH5K_LEDS
+	bool "Atheros 5xxx leds"
+	depends on ATH5K
+	select MAC80211_LEDS
+	select LEDS_CLASS
+	select NEW_LEDS
+	---help---
+	  Say Y here to enable leds support for the ath5k driver.
+
+	  If unsure, say N.
 
 config ATH5K_DEBUG
 	bool "Atheros 5xxx debugging"

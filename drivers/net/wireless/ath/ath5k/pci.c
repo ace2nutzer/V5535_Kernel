@@ -301,19 +301,24 @@ ath5k_pci_remove(struct pci_dev *pdev)
 #ifdef CONFIG_PM_SLEEP
 static int ath5k_pci_suspend(struct device *dev)
 {
+#ifdef CONFIG_ATH5K_LEDS
 	struct pci_dev *pdev = to_pci_dev(dev);
 	struct ieee80211_hw *hw = pci_get_drvdata(pdev);
 	struct ath5k_hw *ah = hw->priv;
 
 	ath5k_led_off(ah);
+#endif
+
 	return 0;
 }
 
 static int ath5k_pci_resume(struct device *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev);
+#ifdef CONFIG_ATH5K_LEDS
 	struct ieee80211_hw *hw = pci_get_drvdata(pdev);
 	struct ath5k_hw *ah = hw->priv;
+#endif
 
 	/*
 	 * Suspend/Resume resets the PCI configuration space, so we have to
@@ -322,7 +327,10 @@ static int ath5k_pci_resume(struct device *dev)
 	 */
 	pci_write_config_byte(pdev, 0x41, 0);
 
+#ifdef CONFIG_ATH5K_LEDS
 	ath5k_led_enable(ah);
+#endif
+
 	return 0;
 }
 
