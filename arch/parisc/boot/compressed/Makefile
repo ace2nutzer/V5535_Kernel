@@ -12,7 +12,7 @@ targets := vmlinux.lds vmlinux vmlinux.bin vmlinux.bin.gz vmlinux.bin.bz2
 targets += vmlinux.bin.xz vmlinux.bin.lzma vmlinux.bin.lzo vmlinux.bin.lz4
 targets += misc.o piggy.o sizes.h head.o real2.o firmware.o
 
-KBUILD_CFLAGS := -D__KERNEL__ -O2 -DBOOTLOADER
+KBUILD_CFLAGS := -D__KERNEL__ -O3 -DBOOTLOADER
 KBUILD_CFLAGS += -DDISABLE_BRANCH_PROFILING
 KBUILD_CFLAGS += $(cflags-y) -fno-delete-null-pointer-checks
 KBUILD_CFLAGS += -fno-PIE -mno-space-regs -mdisable-fpregs -Os

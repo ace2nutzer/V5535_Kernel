@@ -9,7 +9,7 @@ ifneq ($(wildcard $(GENHDR)),)
   GENFLAGS := -DHAVE_GENHDR
 endif
 
-CFLAGS += -Wall -O2 -I$(APIDIR) -I$(LIBDIR) -I$(GENDIR) $(GENFLAGS) -I../../../include
+CFLAGS += -Wall -O3 -I$(APIDIR) -I$(LIBDIR) -I$(GENDIR) $(GENFLAGS) -I../../../include
 LDLIBS += -lcap -lelf
 
 TEST_GEN_PROGS = test_verifier test_tag test_maps test_lru_map test_lpm_map test_progs \
@@ -39,4 +39,4 @@ CLANG ?= clang
 %.o: %.c
 	$(CLANG) -I. -I./include/uapi -I../../../include/uapi \
 		-Wno-compare-distinct-pointer-types \
-		-O2 -target bpf -c $< -o $@
+		-O3 -target bpf -c $< -o $@
