@@ -26,16 +26,16 @@ KCOV_INSTRUMENT		:= n
 targets := vmlinux vmlinux.bin vmlinux.bin.gz vmlinux.bin.bz2 vmlinux.bin.lzma \
 	vmlinux.bin.xz vmlinux.bin.lzo vmlinux.bin.lz4
 
-KBUILD_CFLAGS := -m$(BITS) -D__KERNEL__ -O2 -fno-strict-overflow
-KBUILD_CFLAGS += -fno-strict-aliasing -std=gnu89 -mcmodel=small
-KBUILD_CFLAGS += -DDISABLE_BRANCH_PROFILING -pipe $(call cc-option, -fPIE, -fPIC)
-KBUILD_CFLAGS += $(cflags-y) -ftree-vectorize -DNDEBUG
-KBUILD_CFLAGS += $(call cc-option,-ffreestanding) -fomit-frame-pointer
+KBUILD_CFLAGS := -m$(BITS) -D__KERNEL__ -O3
+KBUILD_CFLAGS += -fno-strict-aliasing $(call cc-option, -fPIE, -fPIC)
+KBUILD_CFLAGS += -DDISABLE_BRANCH_PROFILING
+cflags-$(CONFIG_X86_32) := -march=core2 -mtune=core2
+cflags-$(CONFIG_X86_64) := -mcmodel=small
+KBUILD_CFLAGS += $(cflags-y) -march=core2 -mtune=core2 -msoft-float
+KBUILD_CFLAGS += -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-ssse3
+KBUILD_CFLAGS += $(call cc-option,-ffreestanding)
 KBUILD_CFLAGS += $(call cc-option,-fno-stack-protector)
 KBUILD_CFLAGS += $(call cc-disable-warning, address-of-packed-member)
-
-KBUILD_CFLAGS += -march=core2 -mtune=core2 -mhard-float -m64
-KBUILD_CFLAGS += -mfpmath=387 -mpreferred-stack-boundary=3 -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-ssse3
 
 KBUILD_AFLAGS  := $(KBUILD_CFLAGS) -D__ASSEMBLY__
 GCOV_PROFILE := n

@@ -363,20 +363,15 @@ HOST_LFS_LIBS := $(shell getconf LFS_LIBS 2>/dev/null)
 
 HOSTCC       = gcc
 HOSTCXX      = g++
-
-HOSTCFLAGS   := -Wall -Werror -Wfatal-errors -Wmissing-prototypes -Wstrict-prototypes -O2 \
-		-fomit-frame-pointer -std=gnu89 $(HOST_LFS_CFLAGS) -m64 \
-		-fno-strict-aliasing -fno-strict-overflow -Wno-format-overflow \
-		-DNDEBUG -pipe -march=core2 -mtune=core2 -mhard-float \
-		-mfpmath=sse -ftree-vectorize
-
-HOSTCXXFLAGS := -Wall -Werror -Wfatal-errors -O2 $(HOST_LFS_CFLAGS) -fomit-frame-pointer \
-		-fno-strict-aliasing -fno-strict-overflow -Wno-format-overflow \
-		-DNDEBUG -pipe -m64 -march=core2 -mtune=core2 -mhard-float \
-		-mfpmath=sse -ftree-vectorize
-
+HOSTCFLAGS   := -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 \
+		-fomit-frame-pointer -std=gnu89 $(HOST_LFS_CFLAGS)
+HOSTCXXFLAGS := -O2 $(HOST_LFS_CFLAGS)
 HOSTLDFLAGS  := $(HOST_LFS_LDFLAGS)
 HOST_LOADLIBES := $(HOST_LFS_LIBS)
+
+# Host specifc Flags
+HOSTCFLAGS   += -m64 -march=core2 -mtune=core2 -pipe
+HOSTCXXFLAGS += -m64 -march=core2 -mtune=core2 -pipe
 
 # Make variables (CC, etc...)
 AS		= $(CROSS_COMPILE)as
@@ -424,22 +419,32 @@ LINUXINCLUDE    := \
 		$(USERINCLUDE)
 
 KBUILD_AFLAGS   := -D__ASSEMBLY__
-
-KBUILD_CFLAGS   := -Wall -Werror -Wfatal-errors -Wundef -Wstrict-prototypes -Wno-trigraphs \
-		   -fno-strict-aliasing -fno-common -fshort-wchar -Wno-stringop-truncation \
-		   -Wno-format-security -Wno-stringop-overflow -Wno-packed-not-aligned \
+KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
+		   -fno-strict-aliasing -fno-common -fshort-wchar \
+		   -Werror-implicit-function-declaration \
+		   -Wno-format-security \
 		   -std=gnu89 \
 		   -D_FORTIFY_SOURCE=1 \
-		   -march=core2 \
-		   -mtune=core2 \
-		   -mhard-float \
-		   -mfpmath=sse \
-		   -ftree-vectorize \
-		   -mno-red-zone \
-		   -mcmodel=kernel \
-		   -m64 \
 		   -DNDEBUG \
 		   -pipe
+
+# Target specific Flags
+KBUILD_CFLAGS   += \
+		   -m64 \
+		   -march=core2 \
+		   -mtune=core2 \
+		   -msoft-float \
+		   -mno-80387 \
+		   -mno-fp-ret-in-387 \
+		   -mgeneral-regs-only \
+		   -mno-mmx \
+		   -mno-sse \
+		   -mno-sse2 \
+		   -mno-sse3 \
+		   -mno-ssse3 \
+		   -mno-red-zone \
+		   -mcmodel=kernel
+
 
 KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_AFLAGS_KERNEL :=
@@ -655,8 +660,8 @@ all: vmlinux
 
 KBUILD_CFLAGS	+= $(call cc-option,-fno-PIE)
 KBUILD_AFLAGS	+= $(call cc-option,-fno-PIE)
-CFLAGS_GCOV	:= -fprofile-arcs -ftest-coverage -fno-tree-loop-im $(call cc-disable-warning,maybe-uninitialized,)
-CFLAGS_KCOV	:= $(call cc-option,-fsanitize-coverage=trace-pc,)
+CFLAGS_GCOV	:= -fprofile-arcs -ftest-coverage -fno-tree-loop-im $(call cc-disable-warning,maybe-uninitialized)
+CFLAGS_KCOV	:= $(call cc-option,-fsanitize-coverage=trace-pc)
 export CFLAGS_GCOV CFLAGS_KCOV
 
 # The arch Makefile can set ARCH_{CPP,A,C}FLAGS to override the default
@@ -666,8 +671,8 @@ ARCH_AFLAGS :=
 ARCH_CFLAGS :=
 include arch/$(SRCARCH)/Makefile
 
-KBUILD_CFLAGS	+= $(call cc-option,-fno-delete-null-pointer-checks,)
-KBUILD_CFLAGS	+= $(call cc-disable-warning,frame-address,)
+KBUILD_CFLAGS	+= $(call cc-option,-fno-delete-null-pointer-checks)
+KBUILD_CFLAGS	+= $(call cc-disable-warning,frame-address)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, format-truncation)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, format-overflow)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, int-in-bool-context)
@@ -675,17 +680,17 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning, attribute-alias)
 
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS	+= $(call cc-option,-Oz,-Os)
-KBUILD_CFLAGS	+= $(call cc-disable-warning,maybe-uninitialized,)
+KBUILD_CFLAGS	+= $(call cc-disable-warning,maybe-uninitialized)
 else
 ifdef CONFIG_PROFILE_ALL_BRANCHES
-KBUILD_CFLAGS	+= -O2 $(call cc-disable-warning,maybe-uninitialized,)
+KBUILD_CFLAGS   += -O2 $(call cc-disable-warning,maybe-uninitialized)
 else
 KBUILD_CFLAGS   += -O2
 endif
 endif
 
 KBUILD_CFLAGS += $(call cc-ifversion, -lt, 0409, \
-			$(call cc-disable-warning,maybe-uninitialized,))
+			$(call cc-disable-warning,maybe-uninitialized))
 
 # Tell gcc to never replace conditional load with a non-conditional one
 KBUILD_CFLAGS	+= $(call cc-option,--param=allow-store-data-races=0)
