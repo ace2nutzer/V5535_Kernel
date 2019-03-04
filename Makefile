@@ -442,9 +442,21 @@ KBUILD_CFLAGS   += \
 		   -mno-sse2 \
 		   -mno-sse3 \
 		   -mno-ssse3 \
+		   -mno-avx \
+		   -mno-avx2 \
 		   -mno-red-zone \
 		   -mcmodel=kernel
 
+# VFP / SIMD Flags
+SIMD_CFLAGS := \
+		   -mhard-float \
+		   -mmmx \
+		   -msse \
+		   -msse2 \
+		   -msse3 \
+		   -mssse3 \
+		   -mfpmath=sse \
+		   -ftree-vectorize
 
 KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_AFLAGS_KERNEL :=
@@ -465,7 +477,7 @@ export CFLAGS_KASAN CFLAGS_KASAN_NOSANITIZE CFLAGS_UBSAN
 export KBUILD_AFLAGS AFLAGS_KERNEL AFLAGS_MODULE
 export KBUILD_AFLAGS_MODULE KBUILD_CFLAGS_MODULE KBUILD_LDFLAGS_MODULE
 export KBUILD_AFLAGS_KERNEL KBUILD_CFLAGS_KERNEL
-export KBUILD_ARFLAGS
+export KBUILD_ARFLAGS SIMD_CFLAGS
 
 # When compiling out-of-tree modules, put MODVERDIR in the module
 # tree rather than in the kernel tree. The kernel tree might
