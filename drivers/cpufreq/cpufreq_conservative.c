@@ -32,7 +32,13 @@ struct cs_dbs_tuners {
 
 /* Conservative governor macros */
 #define DEF_FREQUENCY_UP_THRESHOLD		(95)
-#define DEF_FREQUENCY_DOWN_THRESHOLD		(60)
+
+#define DEF_FREQUENCY_DOWN_THRESHOLD_1		(70)
+#define DEF_FREQUENCY_DOWN_THRESHOLD_2		(75)
+
+#define DEF_FREQUENCY_STEP_1		(1600000)
+#define DEF_FREQUENCY_STEP_2		(2000000)
+
 #define DEF_FREQUENCY_STEP			(20)
 #define DEF_SAMPLING_DOWN_FACTOR		(10)
 #define MAX_SAMPLING_DOWN_FACTOR		(10)
@@ -67,6 +73,7 @@ static unsigned int cs_dbs_update(struct cpufreq_policy *policy)
 	struct cs_dbs_tuners *cs_tuners = dbs_data->tuners;
 	unsigned int load = dbs_update(policy);
 	unsigned int freq_step;
+	unsigned int ret = 0;
 
 	/*
 	 * break out if we 'cannot' reduce the speed as the user might
@@ -124,6 +131,15 @@ static unsigned int cs_dbs_update(struct cpufreq_policy *policy)
 		goto out;
 	dbs_info->down_skip = 0;
 
+	/* Get dynamic down_threshold */
+	if (policy->cur <= DEF_FREQUENCY_STEP_1)
+		ret = DEF_FREQUENCY_DOWN_THRESHOLD_1;
+
+	else if (policy->cur >= DEF_FREQUENCY_STEP_2)
+		ret = DEF_FREQUENCY_DOWN_THRESHOLD_2;
+
+	cs_tuners->down_threshold = ret;
+
 	/* Check for frequency decrease */
 	if (load < cs_tuners->down_threshold) {
 		/*
@@ -159,40 +175,6 @@ static ssize_t store_sampling_down_factor(struct gov_attr_set *attr_set,
 		return -EINVAL;
 
 	dbs_data->sampling_down_factor = input;
-	return count;
-}
-
-static ssize_t store_up_threshold(struct gov_attr_set *attr_set,
-				  const char *buf, size_t count)
-{
-	struct dbs_data *dbs_data = to_dbs_data(attr_set);
-	struct cs_dbs_tuners *cs_tuners = dbs_data->tuners;
-	unsigned int input;
-	int ret;
-	ret = sscanf(buf, "%u", &input);
-
-	if (ret != 1 || input > 100 || input <= cs_tuners->down_threshold)
-		return -EINVAL;
-
-	dbs_data->up_threshold = input;
-	return count;
-}
-
-static ssize_t store_down_threshold(struct gov_attr_set *attr_set,
-				    const char *buf, size_t count)
-{
-	struct dbs_data *dbs_data = to_dbs_data(attr_set);
-	struct cs_dbs_tuners *cs_tuners = dbs_data->tuners;
-	unsigned int input;
-	int ret;
-	ret = sscanf(buf, "%u", &input);
-
-	/* cannot be lower than 1 otherwise freq will not fall */
-	if (ret != 1 || input < 1 || input > 100 ||
-			input >= dbs_data->up_threshold)
-		return -EINVAL;
-
-	cs_tuners->down_threshold = input;
 	return count;
 }
 
@@ -253,9 +235,9 @@ gov_show_one(cs, freq_step);
 
 gov_attr_rw(sampling_rate);
 gov_attr_rw(sampling_down_factor);
-gov_attr_rw(up_threshold);
+gov_attr_ro(up_threshold);
 gov_attr_rw(ignore_nice_load);
-gov_attr_rw(down_threshold);
+gov_attr_ro(down_threshold);
 gov_attr_rw(freq_step);
 
 static struct attribute *cs_attributes[] = {
@@ -291,7 +273,7 @@ static int cs_init(struct dbs_data *dbs_data)
 	if (!tuners)
 		return -ENOMEM;
 
-	tuners->down_threshold = DEF_FREQUENCY_DOWN_THRESHOLD;
+	tuners->down_threshold = DEF_FREQUENCY_DOWN_THRESHOLD_1;
 	tuners->freq_step = DEF_FREQUENCY_STEP;
 	dbs_data->up_threshold = DEF_FREQUENCY_UP_THRESHOLD;
 	dbs_data->sampling_down_factor = DEF_SAMPLING_DOWN_FACTOR;
