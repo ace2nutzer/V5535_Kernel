@@ -39,8 +39,8 @@ struct cs_dbs_tuners {
 #define DEF_FREQUENCY_STEP_1		(1600000)
 #define DEF_FREQUENCY_STEP_2		(2000000)
 
-#define DEF_FREQUENCY_STEP			(20)
-#define DEF_SAMPLING_DOWN_FACTOR		(10)
+#define DEF_FREQUENCY_STEP			(19)
+#define DEF_SAMPLING_DOWN_FACTOR		(1)
 #define MAX_SAMPLING_DOWN_FACTOR		(10)
 
 static inline unsigned int get_freq_step(struct cs_dbs_tuners *cs_tuners,
@@ -73,7 +73,7 @@ static unsigned int cs_dbs_update(struct cpufreq_policy *policy)
 	struct cs_dbs_tuners *cs_tuners = dbs_data->tuners;
 	unsigned int load = dbs_update(policy);
 	unsigned int freq_step;
-	unsigned int ret = 0;
+	unsigned int dynamic_down_threshold = 0;
 
 	/*
 	 * break out if we 'cannot' reduce the speed as the user might
@@ -132,13 +132,13 @@ static unsigned int cs_dbs_update(struct cpufreq_policy *policy)
 	dbs_info->down_skip = 0;
 
 	/* Get dynamic down_threshold */
-	if (policy->cur <= DEF_FREQUENCY_STEP_1)
-		ret = DEF_FREQUENCY_DOWN_THRESHOLD_1;
+	if (policy->cur == DEF_FREQUENCY_STEP_1)
+		dynamic_down_threshold = DEF_FREQUENCY_DOWN_THRESHOLD_1;
 
 	else if (policy->cur >= DEF_FREQUENCY_STEP_2)
-		ret = DEF_FREQUENCY_DOWN_THRESHOLD_2;
+		dynamic_down_threshold = DEF_FREQUENCY_DOWN_THRESHOLD_2;
 
-	cs_tuners->down_threshold = ret;
+	cs_tuners->down_threshold = dynamic_down_threshold;
 
 	/* Check for frequency decrease */
 	if (load < cs_tuners->down_threshold) {
