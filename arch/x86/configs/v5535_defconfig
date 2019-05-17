@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/x86 4.14.114 Kernel Configuration
+# Linux/x86 4.14.120 Kernel Configuration
 #
 CONFIG_64BIT=y
 CONFIG_X86_64=y
@@ -1396,6 +1396,7 @@ CONFIG_NET_CORE=y
 # CONFIG_NET_TEAM is not set
 # CONFIG_MACVLAN is not set
 # CONFIG_VXLAN is not set
+# CONFIG_GTP is not set
 # CONFIG_MACSEC is not set
 CONFIG_NETCONSOLE=y
 CONFIG_NETPOLL=y
