@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/x86 4.14.135 Kernel Configuration
+# Linux/x86 4.14.139 Kernel Configuration
 #
 CONFIG_64BIT=y
 CONFIG_X86_64=y
@@ -2725,7 +2725,6 @@ CONFIG_NVMEM=y
 CONFIG_DMIID=y
 # CONFIG_DMI_SYSFS is not set
 CONFIG_DMI_SCAN_MACHINE_NON_EFI_FALLBACK=y
-# CONFIG_ISCSI_IBFT_FIND is not set
 # CONFIG_FW_CFG_SYSFS is not set
 # CONFIG_GOOGLE_FIRMWARE is not set
 # CONFIG_EFI_DEV_PATH_PARSER is not set
