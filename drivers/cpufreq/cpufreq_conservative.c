@@ -26,7 +26,6 @@ static inline struct cs_policy_dbs_info *to_dbs_info(struct policy_dbs_info *pol
 }
 
 struct cs_dbs_tuners {
-	unsigned int dynamic_down_threshold;
 	unsigned int freq_step;
 };
 
@@ -43,10 +42,8 @@ struct cs_dbs_tuners {
 #define MAX_SAMPLING_DOWN_FACTOR		(10)
 #define DEF_FREQUENCY_SAMPLE_RATE		(100000)
 
-static unsigned int up_threshold_0 = DEF_FREQUENCY_UP_THRESHOLD;
-
 static unsigned int down_threshold_1 = 0;
-//static unsigned int down_threshold_2 = 0;
+static unsigned int down_threshold_2 = 0;
 
 static inline unsigned int get_freq_step(struct cs_dbs_tuners *cs_tuners,
 					 struct cpufreq_policy *policy)
@@ -134,20 +131,10 @@ static unsigned int cs_dbs_update(struct cpufreq_policy *policy)
 	if (++dbs_info->down_skip < dbs_data->sampling_down_factor)
 		goto out;
 	dbs_info->down_skip = 0;
-/*
-	// Get dynamic_down_threshold
-	if (policy->cur == DEF_FREQUENCY_STEP_1) {
-		cs_tuners->dynamic_down_threshold = down_threshold_1;
-		goto check;
-	}
 
-	if (policy->cur == DEF_FREQUENCY_STEP_2)
-		cs_tuners->dynamic_down_threshold = down_threshold_2;
-
-check:
-*/
 	/* Check for frequency decrease */
-	if (load < cs_tuners->dynamic_down_threshold) {
+	if ((policy->cur == DEF_FREQUENCY_STEP_1 && load < down_threshold_1) ||
+		(policy->cur == DEF_FREQUENCY_STEP_2 && load < down_threshold_2)) {
 		/*
 		 * if we cannot reduce the frequency anymore, break out early
 		 */
@@ -169,12 +156,8 @@ check:
 
 static void recalculate_down_threshold(struct dbs_data *dbs_data)
 {
-	struct cs_dbs_tuners *cs_tuners = dbs_data->tuners;
-
-	down_threshold_1 = ((up_threshold_0 * DEF_FREQUENCY_STEP_0 / DEF_FREQUENCY_STEP_1) - DOWN_THRESHOLD_MARGIN);
-	//down_threshold_2 = ((up_threshold_0 * DEF_FREQUENCY_STEP_1 / DEF_FREQUENCY_STEP_2) - DOWN_THRESHOLD_MARGIN);
-
-	cs_tuners->dynamic_down_threshold = down_threshold_1;
+	down_threshold_1 = ((dbs_data->up_threshold * DEF_FREQUENCY_STEP_0 / DEF_FREQUENCY_STEP_1) - DOWN_THRESHOLD_MARGIN);
+	down_threshold_2 = ((dbs_data->up_threshold * DEF_FREQUENCY_STEP_1 / DEF_FREQUENCY_STEP_2) - DOWN_THRESHOLD_MARGIN);
 }
 
 /************************** sysfs interface ************************/
@@ -206,30 +189,12 @@ static ssize_t store_up_threshold(struct gov_attr_set *attr_set,
 		return -EINVAL;
 
 	dbs_data->up_threshold = input;
-	up_threshold_0 = input;
 
 	recalculate_down_threshold(dbs_data);
 
 	return count;
 }
-/*
-static ssize_t store_down_threshold(struct gov_attr_set *attr_set,
-				    const char *buf, size_t count)
-{
-	struct dbs_data *dbs_data = to_dbs_data(attr_set);
-	struct cs_dbs_tuners *cs_tuners = dbs_data->tuners;
-	unsigned int input;
-	int ret;
-	ret = sscanf(buf, "%u", &input);
 
-	if (ret != 1 || input < 1 || input > 100 ||
-			input >= dbs_data->up_threshold)
-		return -EINVAL;
-
-	cs_tuners->down_threshold = input;
-	return count;
-}
-*/
 static ssize_t store_ignore_nice_load(struct gov_attr_set *attr_set,
 				      const char *buf, size_t count)
 {
@@ -282,21 +247,18 @@ gov_show_one_common(sampling_rate);
 gov_show_one_common(sampling_down_factor);
 gov_show_one_common(up_threshold);
 gov_show_one_common(ignore_nice_load);
-gov_show_one(cs, dynamic_down_threshold);
 gov_show_one(cs, freq_step);
 
 gov_attr_rw(sampling_rate);
 gov_attr_rw(sampling_down_factor);
 gov_attr_rw(up_threshold);
 gov_attr_rw(ignore_nice_load);
-gov_attr_ro(dynamic_down_threshold);
 gov_attr_rw(freq_step);
 
 static struct attribute *cs_attributes[] = {
 	&sampling_rate.attr,
 	&sampling_down_factor.attr,
 	&up_threshold.attr,
-	&dynamic_down_threshold.attr,
 	&ignore_nice_load.attr,
 	&freq_step.attr,
 	NULL
@@ -325,14 +287,14 @@ static int cs_init(struct dbs_data *dbs_data)
 	if (!tuners)
 		return -ENOMEM;
 
-	tuners->dynamic_down_threshold = 0;
 	tuners->freq_step = DEF_FREQUENCY_STEP;
 	dbs_data->up_threshold = DEF_FREQUENCY_UP_THRESHOLD;
 	dbs_data->sampling_down_factor = DEF_SAMPLING_DOWN_FACTOR;
 	dbs_data->ignore_nice_load = 0;
-	dbs_data->tuners = tuners;
 	dbs_data->sampling_rate = DEF_FREQUENCY_SAMPLE_RATE;
+	dbs_data->tuners = tuners;
 
+	// init default values
 	recalculate_down_threshold(dbs_data);
 
 	return 0;
