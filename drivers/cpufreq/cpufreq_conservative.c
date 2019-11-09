@@ -29,8 +29,8 @@ struct cs_dbs_tuners {
 	unsigned int freq_step;
 };
 
-#define DEF_FREQUENCY_UP_THRESHOLD	(65) /* min 30, max 100 */
-#define DOWN_THRESHOLD_MARGIN			(15)
+#define DEF_FREQUENCY_UP_THRESHOLD	(45) /* min 30, max 100 */
+#define DOWN_THRESHOLD_MARGIN			(20)
 #define DEF_FREQUENCY_STEP			(19)
 
 #define DEF_FREQUENCY_STEP_0			(1200000)
@@ -40,7 +40,6 @@ struct cs_dbs_tuners {
 /* Conservative governor macros */
 #define DEF_SAMPLING_DOWN_FACTOR		(1)
 #define MAX_SAMPLING_DOWN_FACTOR		(10)
-#define DEF_FREQUENCY_SAMPLE_RATE		(100000)
 
 static unsigned int down_threshold_1 = 0;
 static unsigned int down_threshold_2 = 0;
@@ -291,7 +290,6 @@ static int cs_init(struct dbs_data *dbs_data)
 	dbs_data->up_threshold = DEF_FREQUENCY_UP_THRESHOLD;
 	dbs_data->sampling_down_factor = DEF_SAMPLING_DOWN_FACTOR;
 	dbs_data->ignore_nice_load = 0;
-	dbs_data->sampling_rate = DEF_FREQUENCY_SAMPLE_RATE;
 	dbs_data->tuners = tuners;
 
 	// init default values
