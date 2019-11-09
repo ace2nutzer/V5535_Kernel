@@ -20,12 +20,18 @@ MAKEFLAGS += --no-print-directory
 LIBFILE = $(OUTPUT)libsubcmd.a
 
 CFLAGS := $(EXTRA_WARNINGS) $(EXTRA_CFLAGS)
-CFLAGS += -ggdb3 -Wall -Wextra -std=gnu99 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=1 -fPIC
+CFLAGS += -ggdb3 -Wall -Wextra -std=gnu99 -fPIC
+
+ifeq ($(DEBUG),0)
+  ifeq ($(feature-fortify-source), 1)
+    CFLAGS += -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=1
+  endif
+endif
 
 ifeq ($(CC_NO_CLANG), 0)
-  CFLAGS += -O3
+  CFLAGS += -O2
 else
-  CFLAGS += -O6
+  CFLAGS += -O2
 endif
 
 # Treat warnings as errors unless directed not to
