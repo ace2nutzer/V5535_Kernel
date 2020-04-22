@@ -33,7 +33,7 @@ struct cs_dbs_tuners {
 };
 
 /* Conservative governor macros */
-#define DEF_FREQUENCY_UP_THRESHOLD		(95)	/* min 20, max 99 */
+#define DEF_FREQUENCY_UP_THRESHOLD		(95)	/* min 20, max 100 */
 #define DOWN_THRESHOLD_MARGIN			(10)
 #define DEF_FREQUENCY_STEP_KHZ			(400000)
 #define DEF_SAMPLING_DOWN_FACTOR		(1)
@@ -62,7 +62,7 @@ static unsigned int cs_dbs_update(struct cpufreq_policy *policy)
 	unsigned int load = dbs_update(policy);
 
 	/* Check for frequency increase */
-	if (load > dbs_data->up_threshold) {
+	if (load >= dbs_data->up_threshold) {
 		dbs_info->down_skip = 0;
 
 		/* if we are already at full speed then break out early */
@@ -140,7 +140,7 @@ static ssize_t store_up_threshold(struct gov_attr_set *attr_set,
 	int ret;
 	ret = sscanf(buf, "%u", &input);
 
-	if (ret != 1 || input > 99 || input < 20)
+	if (ret != 1 || input > 100 || input < 20)
 		return -EINVAL;
 
 	dbs_data->up_threshold = input;
