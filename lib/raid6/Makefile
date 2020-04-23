@@ -5,6 +5,7 @@ raid6_pq-y	+= algos.o recov.o tables.o int1.o int2.o int4.o \
 		   int8.o int16.o int32.o
 
 raid6_pq-$(CONFIG_X86) += recov_ssse3.o recov_avx2.o mmx.o sse1.o sse2.o avx2.o avx512.o recov_avx512.o
+
 raid6_pq-$(CONFIG_ALTIVEC) += altivec1.o altivec2.o altivec4.o altivec8.o
 raid6_pq-$(CONFIG_KERNEL_MODE_NEON) += neon.o neon1.o neon2.o neon4.o neon8.o recov_neon.o recov_neon_inner.o
 raid6_pq-$(CONFIG_TILEGX) += tilegx8.o
@@ -32,23 +33,6 @@ CFLAGS_REMOVE_vpermxor1.o += -msoft-float
 CFLAGS_REMOVE_vpermxor2.o += -msoft-float
 CFLAGS_REMOVE_vpermxor4.o += -msoft-float
 CFLAGS_REMOVE_vpermxor8.o += -msoft-float
-endif
-endif
-
-# The GCC option -ffreestanding is required in order to compile code containing
-# ARM/NEON intrinsics in a non C99-compliant environment (such as the kernel)
-ifeq ($(CONFIG_KERNEL_MODE_NEON),y)
-NEON_FLAGS := -ffreestanding
-ifeq ($(ARCH),arm)
-NEON_FLAGS += -march=armv7-a -mfloat-abi=softfp -mfpu=neon
-endif
-CFLAGS_recov_neon_inner.o += $(NEON_FLAGS)
-ifeq ($(ARCH),arm64)
-CFLAGS_REMOVE_recov_neon_inner.o += -mgeneral-regs-only
-CFLAGS_REMOVE_neon1.o += -mgeneral-regs-only
-CFLAGS_REMOVE_neon2.o += -mgeneral-regs-only
-CFLAGS_REMOVE_neon4.o += -mgeneral-regs-only
-CFLAGS_REMOVE_neon8.o += -mgeneral-regs-only
 endif
 endif
 
@@ -106,25 +90,21 @@ $(obj)/altivec8.c:   UNROLL := 8
 $(obj)/altivec8.c:   $(src)/altivec.uc $(src)/unroll.awk FORCE
 	$(call if_changed,unroll)
 
-CFLAGS_neon1.o += $(NEON_FLAGS)
 targets += neon1.c
 $(obj)/neon1.c:   UNROLL := 1
 $(obj)/neon1.c:   $(src)/neon.uc $(src)/unroll.awk FORCE
 	$(call if_changed,unroll)
 
-CFLAGS_neon2.o += $(NEON_FLAGS)
 targets += neon2.c
 $(obj)/neon2.c:   UNROLL := 2
 $(obj)/neon2.c:   $(src)/neon.uc $(src)/unroll.awk FORCE
 	$(call if_changed,unroll)
 
-CFLAGS_neon4.o += $(NEON_FLAGS)
 targets += neon4.c
 $(obj)/neon4.c:   UNROLL := 4
 $(obj)/neon4.c:   $(src)/neon.uc $(src)/unroll.awk FORCE
 	$(call if_changed,unroll)
 
-CFLAGS_neon8.o += $(NEON_FLAGS)
 targets += neon8.c
 $(obj)/neon8.c:   UNROLL := 8
 $(obj)/neon8.c:   $(src)/neon.uc $(src)/unroll.awk FORCE
