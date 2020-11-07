@@ -46,6 +46,7 @@ struct dbs_data {
 	unsigned int sampling_down_factor;
 	unsigned int up_threshold;
 	unsigned int io_is_busy;
+	bool boost;
 };
 
 static inline struct dbs_data *to_dbs_data(struct gov_attr_set *attr_set)
@@ -169,16 +170,7 @@ void cpufreq_dbs_governor_limits(struct cpufreq_policy *policy);
 	}
 
 /* Governor specific operations */
-struct od_ops {
-	unsigned int (*powersave_bias_target)(struct cpufreq_policy *policy,
-			unsigned int freq_next, unsigned int relation);
-};
-
 unsigned int dbs_update(struct cpufreq_policy *policy);
-void od_register_powersave_bias_handler(unsigned int (*f)
-		(struct cpufreq_policy *, unsigned int, unsigned int),
-		unsigned int powersave_bias);
-void od_unregister_powersave_bias_handler(void);
 ssize_t store_sampling_rate(struct gov_attr_set *attr_set, const char *buf,
 			    size_t count);
 void gov_update_cpu_data(struct dbs_data *dbs_data);
