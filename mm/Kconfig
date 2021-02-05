@@ -621,6 +621,11 @@ config ZSMALLOC_STAT
 	  information to userspace via debugfs.
 	  If unsure, say N.
 
+config DIRECT_RECLAIM_FILE_PAGES_ONLY
+	bool "Reclaim file pages only on direct reclaim path"
+	depends on ZSWAP || ZRAM
+	default n
+
 config GENERIC_EARLY_IOREMAP
 	bool
 
