@@ -3593,6 +3593,7 @@ static int kswapd(void *p)
 	 */
 	tsk->flags |= PF_MEMALLOC | PF_SWAPWRITE | PF_KSWAPD;
 	set_freezable();
+	set_user_nice(current, MIN_NICE);
 
 	WRITE_ONCE(pgdat->kswapd_order, 0);
 	WRITE_ONCE(pgdat->kswapd_classzone_idx, MAX_NR_ZONES);
