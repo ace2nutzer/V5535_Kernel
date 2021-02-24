@@ -517,7 +517,7 @@ static int swap_writer_finish(struct swap_map_handle *handle,
 #define LZO_CMP_SIZE	(LZO_CMP_PAGES * PAGE_SIZE)
 
 /* Maximum number of threads for compression/decompression. */
-#define LZO_THREADS	3
+#define LZO_THREADS	NR_CPUS
 
 /* Minimum/maximum number of pages for read buffering. */
 #define LZO_MIN_RD_PAGES	1024
@@ -687,8 +687,9 @@ static int save_image_lzo(struct swap_map_handle *handle,
 	 * We'll limit the number of threads for compression to limit memory
 	 * footprint.
 	 */
-	nr_threads = num_online_cpus() - 1;
-	nr_threads = clamp_val(nr_threads, 1, LZO_THREADS);
+	//nr_threads = num_online_cpus() - 1;
+	//nr_threads = clamp_val(nr_threads, 1, LZO_THREADS);
+	nr_threads = LZO_THREADS;
 
 	page = (void *)__get_free_page(__GFP_RECLAIM | __GFP_HIGH);
 	if (!page) {
@@ -1185,8 +1186,9 @@ static int load_image_lzo(struct swap_map_handle *handle,
 	 * We'll limit the number of threads for decompression to limit memory
 	 * footprint.
 	 */
-	nr_threads = num_online_cpus() - 1;
-	nr_threads = clamp_val(nr_threads, 1, LZO_THREADS);
+	//nr_threads = num_online_cpus() - 1;
+	//nr_threads = clamp_val(nr_threads, 1, LZO_THREADS);
+	nr_threads = LZO_THREADS;
 
 	page = vmalloc(sizeof(*page) * LZO_MAX_RD_PAGES);
 	if (!page) {
