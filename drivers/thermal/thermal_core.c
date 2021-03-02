@@ -48,7 +48,6 @@ static DEFINE_MUTEX(thermal_governor_lock);
 static DEFINE_MUTEX(poweroff_lock);
 
 static atomic_t in_suspend;
-static bool power_off_triggered;
 
 static struct thermal_governor *def_governor;
 
@@ -278,6 +277,7 @@ static void thermal_unregister_governors(void)
 	thermal_gov_power_allocator_unregister();
 }
 
+#if 0
 /*
  * Zone update section: main control loop applied to each zone while monitoring
  *
@@ -323,6 +323,7 @@ static void handle_non_critical_trips(struct thermal_zone_device *tz,
 	tz->governor ? tz->governor->throttle(tz, trip) :
 		       def_governor->throttle(tz, trip);
 }
+#endif // if 0
 
 /**
  * thermal_emergency_poweroff_func - emergency poweroff work after a known delay
@@ -359,7 +360,7 @@ static DECLARE_DELAYED_WORK(thermal_emergency_poweroff_work,
  * This may be called from any critical situation to trigger a system shutdown
  * after a known period of time. By default this is not scheduled.
  */
-static void thermal_emergency_poweroff(void)
+void thermal_emergency_poweroff(void)
 {
 	int poweroff_delay_ms = CONFIG_THERMAL_EMERGENCY_POWEROFF_DELAY_MS;
 	/*
@@ -372,10 +373,12 @@ static void thermal_emergency_poweroff(void)
 			      msecs_to_jiffies(poweroff_delay_ms));
 }
 
+#if 0
 static void handle_critical_trips(struct thermal_zone_device *tz,
 				  int trip, enum thermal_trip_type trip_type)
 {
 	int trip_temp;
+	bool power_off_triggered;
 
 	tz->ops->get_trip_temp(tz, trip, &trip_temp);
 
@@ -426,6 +429,7 @@ static void handle_thermal_trip(struct thermal_zone_device *tz, int trip)
 	 */
 	monitor_thermal_zone(tz);
 }
+#endif
 
 static void update_temperature(struct thermal_zone_device *tz)
 {
@@ -471,7 +475,7 @@ static void thermal_zone_device_reset(struct thermal_zone_device *tz)
 void thermal_zone_device_update(struct thermal_zone_device *tz,
 				enum thermal_notify_event event)
 {
-	int count;
+//	int count;
 
 	if (atomic_read(&in_suspend))
 		return;
@@ -485,8 +489,10 @@ void thermal_zone_device_update(struct thermal_zone_device *tz,
 
 	tz->notify_event = event;
 
+/*
 	for (count = 0; count < tz->trips; count++)
 		handle_thermal_trip(tz, count);
+*/
 }
 EXPORT_SYMBOL_GPL(thermal_zone_device_update);
 
@@ -504,7 +510,8 @@ EXPORT_SYMBOL_GPL(thermal_zone_device_update);
  */
 void thermal_notify_framework(struct thermal_zone_device *tz, int trip)
 {
-	handle_thermal_trip(tz, trip);
+	return;
+	//handle_thermal_trip(tz, trip);
 }
 EXPORT_SYMBOL_GPL(thermal_notify_framework);
 

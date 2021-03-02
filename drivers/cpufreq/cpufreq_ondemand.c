@@ -35,6 +35,7 @@
 #define DEF_FREQUENCY_STEP_2			(2000000)
 
 static unsigned int down_threshold = 0;
+extern unsigned int cpu_max_limit;
 
 /*
  * Every sampling_rate, we check, if current idle time is less than 20%
@@ -50,6 +51,14 @@ static void od_update(struct cpufreq_policy *policy)
 
 	/* Check for frequency increase */
 	if (load >= dbs_data->up_threshold) {
+
+		/* Check for thermal throttling (DVFS) */
+		if (cpu_max_limit == policy->cur)
+			return;
+		if (cpu_max_limit < policy->cur) {
+			requested_freq = cpu_max_limit;
+			goto out;
+		}
 
 		/* if we are already at full speed then break out early */
 		if (policy->cur == policy->max)
@@ -76,6 +85,7 @@ static void od_update(struct cpufreq_policy *policy)
 			policy_dbs->rate_mult =
 				dbs_data->sampling_down_factor;
 
+out:
 		__cpufreq_driver_target(policy, requested_freq,
 			CPUFREQ_RELATION_H);
 		return;

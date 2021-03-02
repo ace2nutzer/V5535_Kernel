@@ -31,6 +31,11 @@
 #include <linux/tick.h>
 #include <trace/events/power.h>
 
+#include <linux/moduleparam.h>
+
+unsigned int cpu_max_freq = 0;
+module_param(cpu_max_freq, uint, 0644);
+
 static LIST_HEAD(cpufreq_policy_list);
 
 static inline bool policy_is_inactive(struct cpufreq_policy *policy)
