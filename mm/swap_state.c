@@ -558,6 +558,7 @@ static unsigned long swapin_nr_pages(unsigned long offset)
 struct page *swapin_readahead(swp_entry_t entry, gfp_t gfp_mask,
 			struct vm_area_struct *vma, unsigned long addr)
 {
+	bool do_poll = true;
 #ifdef CONFIG_SWAP_ENABLE_READAHEAD
 	struct page *page;
 	unsigned long entry_offset = swp_offset(entry);
@@ -565,7 +566,7 @@ struct page *swapin_readahead(swp_entry_t entry, gfp_t gfp_mask,
 	unsigned long start_offset, end_offset;
 	unsigned long mask;
 	struct blk_plug plug;
-	bool do_poll = true, page_allocated;
+	bool page_allocated;
 
 	mask = swapin_nr_pages(offset) - 1;
 	if (!mask)
