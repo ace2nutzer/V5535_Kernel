@@ -2024,7 +2024,6 @@ static int kcompactd(void *p)
 		set_cpus_allowed_ptr(tsk, cpumask);
 
 	set_freezable();
-	set_user_nice(current, MIN_NICE);
 
 	pgdat->kcompactd_max_order = 0;
 	pgdat->kcompactd_classzone_idx = pgdat->nr_zones - 1;
