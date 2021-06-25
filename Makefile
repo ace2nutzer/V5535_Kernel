@@ -424,7 +424,6 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
 		   -std=gnu89 \
-		   -D_FORTIFY_SOURCE=1 \
 		   -DNDEBUG \
 		   -pipe
 
