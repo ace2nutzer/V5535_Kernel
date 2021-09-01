@@ -44,6 +44,7 @@
 #include <linux/kthread.h>
 #include <linux/thermal.h>
 #include <linux/reboot.h>
+#include <linux/delay.h>
 
 #define DRVNAME	"coretemp"
 
@@ -73,23 +74,26 @@ MODULE_PARM_DESC(tjmax, "TjMax value in degrees Celsius");
 #define for_each_sibling(i, cpu)	for (i = 0; false; )
 #endif
 
-/* custom DVFS */
+/* custom CPU DVFS */
 static unsigned int cpu_dvfs_max_temp = 75;
 static unsigned int cpu_dvfs_peak_temp = 0;
 static int cpu_temp = 0;
 static bool cpu_dvfs_debug = false;
-extern unsigned int cpu_max_freq;
 static unsigned int cpu_dvfs_check_delay = 8;	/* ms */
-unsigned int cpu_max_limit = 0;
+unsigned int cpu_dvfs_limit = 0;
+extern unsigned int cpu_max_freq;
+static unsigned int cpu_dvfs_down_temp = 0;
+static struct task_struct *cpu_dvfs_thread = NULL;
 
-#define CPU_DVFS_RANGE_TEMP_MIN	(70)	/* °C */
-#define CPU_DVFS_RANGE_TEMP_MAX	(95)	/* °C */
-#define CPU_DVFS_MARGIN_TEMP			(5)		/* °C */
-#define CPU_DVFS_TJMAX					(105)	/* °C */
-#define ATTR_IDX							(3)		/* Core 1 for MCORE2 */
+#define CPU_DVFS_RANGE_TEMP_MIN		(45)	/* °C */
+#define CPU_DVFS_RANGE_TEMP_MAX		(95)	/* °C */
+#define CPU_DVFS_TJMAX				(100)	/* °C */
+#define CPU_DVFS_AVOID_SHUTDOWN_TEMP		(105)	/* °C */
+#define CPU_DVFS_SHUTDOWN_TEMP			(110)	/* °C */
+#define ATTR_IDX				(3)	/* Core 1 for MCORE2 */
 
 #define FREQ_STEP_0		(1200000)
-#define FREQ_STEP_1		(1600000)	/* durable Freq */
+#define FREQ_STEP_1		(1600000)
 #define FREQ_STEP_2		(2000000)
 
 static DEFINE_MUTEX(poweroff_lock);
@@ -248,12 +252,16 @@ int get_cpu_temp(void)
 static ssize_t cpu_dvfs_max_temp_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
 	sprintf(buf, "%s[cpu_temp]\t%d °C\n",buf, cpu_temp);
+	sprintf(buf, "%s[max_temp]\t%u °C\n",buf, cpu_dvfs_max_temp);
 	if (!cpu_dvfs_debug)
 		sprintf(buf, "%s[peak_temp]\t%s\n",buf, "enable debug");
 	else
 		sprintf(buf, "%s[peak_temp]\t%u °C\n",buf, cpu_dvfs_peak_temp);
-	sprintf(buf, "%s[max_temp]\t%u °C\n",buf, cpu_dvfs_max_temp);
 	sprintf(buf, "%s[tjmax]\t\t%d °C\n",buf, (int)CPU_DVFS_TJMAX);
+	sprintf(buf, "%s[dvfs_avoid_shutdown_temp]\t%d °C\n",buf, (int)CPU_DVFS_AVOID_SHUTDOWN_TEMP);
+	sprintf(buf, "%s[dvfs_shutdown_temp]\t%d °C\n",buf, (int)CPU_DVFS_SHUTDOWN_TEMP);
+	sprintf(buf, "%s[cpu_max_freq]\t%u KHz\n",buf, cpu_max_freq);
+	sprintf(buf, "%s[cpu_dvfs_limit]\t%u KHz\n",buf, cpu_dvfs_limit);
 	return strlen(buf);
 }
 
@@ -269,6 +277,12 @@ static ssize_t cpu_dvfs_max_temp_store(struct kobject *kobj, struct kobj_attribu
 		}
 
 		cpu_dvfs_max_temp = tmp;
+		cpu_dvfs_down_temp = (tmp - 5);
+		return count;
+	}
+
+	if (sysfs_streq(buf, "reset_peak")) {
+		cpu_dvfs_peak_temp = 0;
 		return count;
 	}
 
@@ -284,9 +298,11 @@ static ssize_t cpu_dvfs_debug_show(struct kobject *kobj, struct kobj_attribute *
 	return strlen(buf);
 }
 
+static int cpu_dvfs_check_thread(void *nothing);
+
 static ssize_t cpu_dvfs_debug_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
 {
-	unsigned int tmp;
+	unsigned int tmp = 0;
 
 	if (sysfs_streq(buf, "true") || sysfs_streq(buf, "1")) {
 		cpu_dvfs_debug = true;
@@ -309,11 +325,6 @@ static ssize_t cpu_dvfs_debug_store(struct kobject *kobj, struct kobj_attribute 
 		return count;
 	}
 
-	if (sysfs_streq(buf, "reset_peak")) {
-		cpu_dvfs_peak_temp = 0;
-		return count;
-	}
-
 	pr_warn("%s: invalid input\n", __func__);
 	return -EINVAL;
 }
@@ -333,55 +344,66 @@ static struct kobject *coretemp_kobject;
 
 static int cpu_dvfs_check_thread(void *nothing)
 {
-	bool power_off_triggered = false;
-
-	while (!power_off_triggered) {
-		schedule_timeout_interruptible(msecs_to_jiffies(cpu_dvfs_check_delay));
-		if (unlikely(cpu_dvfs_debug)) {
-			if (cpu_temp > cpu_dvfs_peak_temp) {
-				cpu_dvfs_peak_temp = cpu_temp;
-				pr_info("%s: peak_temp: %u °C\n",__func__, cpu_dvfs_peak_temp);
-			}
+	while (!kthread_should_stop()) {
+		if (!cpu_max_freq) {
+			pr_warn("%s: cpufreq driver not ready !\n", __func__);
+			msleep(msecs_to_jiffies(80));
+			continue;
 		}
+		break;
+	}
+
+	cpu_dvfs_limit = cpu_max_freq;
+	cpu_dvfs_down_temp = (cpu_dvfs_max_temp - 5);
+	pr_info("cpu_dvfs: DVFS thread started successfully.\n");
+
+	while (!kthread_should_stop()) {
 
 		cpu_temp = get_cpu_temp();
 
-		if (likely(cpu_temp >= cpu_dvfs_max_temp)) {
-			if (cpu_temp > CPU_DVFS_TJMAX) {
-				pr_warn("%s: Critical temp reached: %d °C !!! - shutting down ...\n", __func__ , cpu_temp);
-				mutex_lock(&poweroff_lock);
-				if (!power_off_triggered) {
-					/*
-					 * Queue a backup emergency shutdown in the event of
-					 * orderly_poweroff failure
-					 */
-					thermal_emergency_poweroff();
-					orderly_poweroff(true);
-					power_off_triggered = true;
-				}
-				mutex_unlock(&poweroff_lock);
-				break;
+		if (cpu_temp >= cpu_dvfs_max_temp) {
+			if (cpu_dvfs_limit >= FREQ_STEP_2)
+				cpu_dvfs_limit = FREQ_STEP_1;
+			//else if (cpu_dvfs_limit == FREQ_STEP_1)
+				//cpu_dvfs_limit = FREQ_STEP_0;
+
+		} else if (cpu_temp < cpu_dvfs_down_temp) {
+			if (cpu_dvfs_limit == FREQ_STEP_0)
+				cpu_dvfs_limit = FREQ_STEP_1;
+			else if (cpu_dvfs_limit == FREQ_STEP_1)
+				cpu_dvfs_limit = FREQ_STEP_2;
+		}
+
+		if (cpu_dvfs_limit > cpu_max_freq)
+			cpu_dvfs_limit = cpu_max_freq;
+
+		if (cpu_temp > CPU_DVFS_SHUTDOWN_TEMP) {
+			cpu_dvfs_limit = FREQ_STEP_0;
+			pr_warn("%s: Shutdown temp reached: %d C !!! - shutting down ...\n", __func__ , cpu_temp);
+			mutex_lock(&poweroff_lock);
+			/*
+			 * Queue a backup emergency shutdown in the event of
+			 * orderly_poweroff failure
+			 */
+			thermal_emergency_poweroff();
+			orderly_poweroff(true);
+			mutex_unlock(&poweroff_lock);
+			break;
+		}
+
+		if (cpu_temp > CPU_DVFS_AVOID_SHUTDOWN_TEMP) {
+			cpu_dvfs_limit = FREQ_STEP_0;
+			pr_warn("%s: Critical temp reached: %d C !!! - Throttle CPU to min_freq for now ...\n", __func__ , cpu_temp);
+		}
+
+		if (cpu_dvfs_debug) {
+			if (cpu_temp > cpu_dvfs_peak_temp) {
+				cpu_dvfs_peak_temp = cpu_temp;
+				pr_info("%s: peak_temp: %u C\n", __func__, cpu_dvfs_peak_temp);
 			}
-
-			if (cpu_max_limit == FREQ_STEP_2)
-				cpu_max_limit = FREQ_STEP_1;
-			else if (cpu_max_limit == FREQ_STEP_1)
-				continue;
-			else
-				cpu_max_limit = cpu_max_freq;
-
-			continue;
 		}
 
-		if (cpu_temp < (cpu_dvfs_max_temp - CPU_DVFS_MARGIN_TEMP)) {
-			if (cpu_max_limit == FREQ_STEP_1)
-				cpu_max_limit = FREQ_STEP_2;
-			else if (cpu_max_limit == FREQ_STEP_2)
-				continue;
-			else
-				cpu_max_limit = cpu_max_freq;
-		}
-
+		msleep(msecs_to_jiffies(cpu_dvfs_check_delay));
 		continue;
 	}
 
@@ -933,8 +955,15 @@ static enum cpuhp_state coretemp_hp_online;
 
 static int __init coretemp_init(void)
 {
-	struct task_struct *cpu_dvfs_thread;
 	int err;
+
+	/*
+	 * CPUID.06H.EAX[0] indicates whether the CPU has thermal
+	 * sensors. We check this bit only, all the early CPUs
+	 * without thermal sensors will be filtered out.
+	 */
+	if (!x86_match_cpu(coretemp_ids))
+		return -ENODEV;
 
 	mutex_init(&poweroff_lock);
 
@@ -951,21 +980,11 @@ static int __init coretemp_init(void)
 
 	cpu_dvfs_thread = kthread_run(cpu_dvfs_check_thread, NULL, "cpu_dvfsd");
 	if (IS_ERR(cpu_dvfs_thread)) {
-		pr_err("cpu_dvfs: failed to start check_thread\n");
+		pr_err("cpu_dvfs: failed to start DVFS thread\n");
 		goto outdrv;
-	} else {
-		pr_info("cpu_dvfs: check_thread started successfully.\n");
 	}
-
+	set_cpus_allowed_ptr(cpu_dvfs_thread, cpu_all_mask);
 	set_user_nice(cpu_dvfs_thread, MIN_NICE);
-
-	/*
-	 * CPUID.06H.EAX[0] indicates whether the CPU has thermal
-	 * sensors. We check this bit only, all the early CPUs
-	 * without thermal sensors will be filtered out.
-	 */
-	if (!x86_match_cpu(coretemp_ids))
-		return -ENODEV;
 
 	max_packages = topology_max_packages();
 	pkg_devices = kzalloc(max_packages * sizeof(struct platform_device *),
@@ -990,16 +1009,19 @@ outdrv:
 	mutex_destroy(&poweroff_lock);
 	return err;
 }
-module_init(coretemp_init)
 
 static void __exit coretemp_exit(void)
 {
+	pr_info("%s: exit.\n", __func__);
+	kthread_stop(cpu_dvfs_thread);
 	cpuhp_remove_state(coretemp_hp_online);
 	platform_driver_unregister(&coretemp_driver);
 	kfree(pkg_devices);
 }
+
+module_init(coretemp_init)
 module_exit(coretemp_exit)
 
 MODULE_AUTHOR("Rudolf Marek <r.marek@assembler.cz>");
 MODULE_DESCRIPTION("Intel Core temperature monitor");
-MODULE_LICENSE("GPL");
+MODULE_LICENSE("GPL v2");

@@ -23,7 +23,7 @@
 /* On-demand governor macros */
 #define DEF_FREQUENCY_UP_THRESHOLD		(95)
 #define DOWN_THRESHOLD_MARGIN			(25)
-#define DEF_SAMPLING_DOWN_FACTOR		(1)
+#define DEF_SAMPLING_DOWN_FACTOR		(3)
 #define MAX_SAMPLING_DOWN_FACTOR		(100000)
 #define MICRO_FREQUENCY_UP_THRESHOLD		(95)
 #define MIN_FREQUENCY_UP_THRESHOLD		(40)
@@ -35,7 +35,7 @@
 #define DEF_FREQUENCY_STEP_2			(2000000)
 
 static unsigned int down_threshold = 0;
-extern unsigned int cpu_max_limit;
+extern unsigned int cpu_dvfs_limit;
 
 /*
  * Every sampling_rate, we check, if current idle time is less than 20%
@@ -52,16 +52,12 @@ static void od_update(struct cpufreq_policy *policy)
 	/* Check for frequency increase */
 	if (load >= dbs_data->up_threshold) {
 
-		/* Check for thermal throttling (DVFS) */
-		if (cpu_max_limit == policy->cur)
-			return;
-		if (cpu_max_limit < policy->cur) {
-			requested_freq = cpu_max_limit;
-			goto out;
-		}
-
 		/* if we are already at full speed then break out early */
-		if (policy->cur == policy->max)
+		//if (policy->cur == policy->max)
+			//return;
+
+		/* DVFS */
+		if (policy->cur == cpu_dvfs_limit)
 			return;
 
 		if (!dbs_data->boost) {
@@ -70,26 +66,31 @@ static void od_update(struct cpufreq_policy *policy)
 			else if (policy->cur == DEF_FREQUENCY_STEP_1)
 				requested_freq = DEF_FREQUENCY_STEP_2;
 			else
-				return;
-
+				requested_freq = policy->max;
 			if (requested_freq > policy->max)
 				requested_freq = policy->max;
-
 		} else {
 			/* Boost */
 			requested_freq = policy->max;
 		}
+
+		/* DVFS */
+		if (requested_freq > cpu_dvfs_limit)
+			requested_freq = cpu_dvfs_limit;
 
 		/* If switching to max speed, apply sampling_down_factor */
 		if (requested_freq == policy->max)
 			policy_dbs->rate_mult =
 				dbs_data->sampling_down_factor;
 
-out:
 		__cpufreq_driver_target(policy, requested_freq,
 			CPUFREQ_RELATION_H);
+
 		return;
 	}
+
+	/* No longer fully busy, reset rate_mult */
+	policy_dbs->rate_mult = 1;
 
 	/*
 	 * if we cannot reduce the frequency anymore, break out early
@@ -97,23 +98,26 @@ out:
 	if (policy->cur == policy->min)
 		return;
 
-	/* No longer fully busy, reset rate_mult */
-	policy_dbs->rate_mult = 1;
-
 	/* Check for frequency decrease */
-	if (load <= down_threshold) {
-		if (policy->cur == DEF_FREQUENCY_STEP_2)
+	if (load < down_threshold) {
+		if (policy->cur >= DEF_FREQUENCY_STEP_2)
 			requested_freq = DEF_FREQUENCY_STEP_1;
 		else if (policy->cur == DEF_FREQUENCY_STEP_1)
 			requested_freq = DEF_FREQUENCY_STEP_0;
 		else
-			return;
+			requested_freq = policy->min;
 
 		if (requested_freq < policy->min)
 			requested_freq = policy->min;
 
+		/* DVFS */
+		if (requested_freq > cpu_dvfs_limit)
+			requested_freq = cpu_dvfs_limit;
+
 		__cpufreq_driver_target(policy, requested_freq,
 				CPUFREQ_RELATION_L);
+
+		return;
 	}
 }
 
@@ -312,6 +316,9 @@ static int od_init(struct dbs_data *dbs_data)
 	dbs_data->tuners = tuners;
 
 	update_down_threshold(dbs_data);
+
+	if (!cpu_dvfs_limit)
+		cpu_dvfs_limit = DEF_FREQUENCY_STEP_2;
 
 	return 0;
 }

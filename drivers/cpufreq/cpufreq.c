@@ -34,7 +34,6 @@
 #include <linux/moduleparam.h>
 
 unsigned int cpu_max_freq = 0;
-module_param(cpu_max_freq, uint, 0644);
 
 static LIST_HEAD(cpufreq_policy_list);
 
@@ -706,9 +705,11 @@ static ssize_t store_##file_name					\
 		return -EINVAL;						\
 									\
 	temp = new_policy.object;					\
-	ret = cpufreq_set_policy(policy, &new_policy);		\
-	if (!ret)							\
+	ret = cpufreq_set_policy(policy, &new_policy);			\
+	if (!ret) {							\
 		policy->user_policy.object = temp;			\
+		cpu_max_freq = policy->user_policy.max;		\
+	}								\
 									\
 	return ret ? ret : count;					\
 }
@@ -993,6 +994,7 @@ static int cpufreq_add_dev_interface(struct cpufreq_policy *policy)
 {
 	struct freq_attr **drv_attr;
 	int ret = 0;
+	unsigned int limit;
 
 	/* set up files for this cpu device */
 	drv_attr = cpufreq_driver->attr;
@@ -1016,6 +1018,11 @@ static int cpufreq_add_dev_interface(struct cpufreq_policy *policy)
 		ret = sysfs_create_file(&policy->kobj, &bios_limit.attr);
 		if (ret)
 			return ret;
+
+		if (!cpufreq_driver->bios_limit(policy->cpu, &limit))
+			cpu_max_freq = limit;
+		else
+			cpu_max_freq = policy->cpuinfo.max_freq;
 	}
 
 	return 0;
