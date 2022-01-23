@@ -33,6 +33,7 @@
 
 #include <linux/moduleparam.h>
 
+extern void set_cpu_dvfs_limit(unsigned int freq);
 unsigned int cpu_max_freq = 0;
 
 static LIST_HEAD(cpufreq_policy_list);
@@ -709,6 +710,7 @@ static ssize_t store_##file_name					\
 	if (!ret) {							\
 		policy->user_policy.object = temp;			\
 		cpu_max_freq = policy->user_policy.max;		\
+		set_cpu_dvfs_limit(cpu_max_freq);			\
 	}								\
 									\
 	return ret ? ret : count;					\
@@ -1023,6 +1025,8 @@ static int cpufreq_add_dev_interface(struct cpufreq_policy *policy)
 			cpu_max_freq = limit;
 		else
 			cpu_max_freq = policy->cpuinfo.max_freq;
+
+		set_cpu_dvfs_limit(cpu_max_freq);
 	}
 
 	return 0;

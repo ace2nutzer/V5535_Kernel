@@ -75,14 +75,14 @@ MODULE_PARM_DESC(tjmax, "TjMax value in degrees Celsius");
 #endif
 
 /* custom CPU DVFS */
-static unsigned int cpu_dvfs_max_temp = 75;
+static unsigned int cpu_dvfs_max_temp = 95;
 static unsigned int cpu_dvfs_peak_temp = 0;
 static int cpu_temp = 0;
 static bool cpu_dvfs_debug = false;
-static unsigned int cpu_dvfs_check_delay = 8;	/* ms */
+static unsigned int cpu_dvfs_check_delay = 12;	/* ms */
 unsigned int cpu_dvfs_limit = 0;
 extern unsigned int cpu_max_freq;
-static unsigned int cpu_dvfs_down_temp = 0;
+static unsigned int cpu_dvfs_min_temp = 0;
 static struct task_struct *cpu_dvfs_thread = NULL;
 
 #define CPU_DVFS_RANGE_TEMP_MIN		(45)	/* °C */
@@ -265,6 +265,8 @@ static ssize_t cpu_dvfs_max_temp_show(struct kobject *kobj, struct kobj_attribut
 	return strlen(buf);
 }
 
+void set_cpu_dvfs_limit(unsigned int freq);
+
 static ssize_t cpu_dvfs_max_temp_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
 {
 	unsigned int tmp;
@@ -272,12 +274,13 @@ static ssize_t cpu_dvfs_max_temp_store(struct kobject *kobj, struct kobj_attribu
 	if (sscanf(buf, "%u", &tmp)) {
 
 		if (tmp < CPU_DVFS_RANGE_TEMP_MIN || tmp > CPU_DVFS_RANGE_TEMP_MAX) {
-			pr_warn("%s: out of range %d - %d\n", __func__ , (int)CPU_DVFS_RANGE_TEMP_MIN , (int)CPU_DVFS_RANGE_TEMP_MAX);
+			pr_warn("%s: DVFS: out of range %d - %d\n", __func__ , (int)CPU_DVFS_RANGE_TEMP_MIN , (int)CPU_DVFS_RANGE_TEMP_MAX);
 			return -EINVAL;
 		}
 
 		cpu_dvfs_max_temp = tmp;
-		cpu_dvfs_down_temp = (tmp - 5);
+		cpu_dvfs_min_temp = (tmp - 5);
+		set_cpu_dvfs_limit(cpu_max_freq);
 		return count;
 	}
 
@@ -286,7 +289,7 @@ static ssize_t cpu_dvfs_max_temp_store(struct kobject *kobj, struct kobj_attribu
 		return count;
 	}
 
-	pr_warn("%s: invalid input\n", __func__);
+	pr_warn("%s: DVFS: invalid input\n", __func__);
 	return -EINVAL;
 }
 ATTR_RW(cpu_dvfs_max_temp);
@@ -297,8 +300,6 @@ static ssize_t cpu_dvfs_debug_show(struct kobject *kobj, struct kobj_attribute *
 	sprintf(buf, "%s[check_delay]\t%u ms\n",buf, cpu_dvfs_check_delay);
 	return strlen(buf);
 }
-
-static int cpu_dvfs_check_thread(void *nothing);
 
 static ssize_t cpu_dvfs_debug_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
 {
@@ -317,7 +318,7 @@ static ssize_t cpu_dvfs_debug_store(struct kobject *kobj, struct kobj_attribute 
 	if (sscanf(buf, "delay=%d", &tmp)) {
 
 		if (tmp < 1 || tmp > 1000) {
-			pr_warn("%s: out of range !\n", __func__);
+			pr_warn("%s: DVFS: out of range !\n", __func__);
 			return -EINVAL;
 		}
 
@@ -325,7 +326,7 @@ static ssize_t cpu_dvfs_debug_store(struct kobject *kobj, struct kobj_attribute 
 		return count;
 	}
 
-	pr_warn("%s: invalid input\n", __func__);
+	pr_warn("%s: DVFS: invalid input\n", __func__);
 	return -EINVAL;
 }
 ATTR_RW(cpu_dvfs_debug);
@@ -342,44 +343,48 @@ static struct attribute_group coretemp_attr_group = {
 
 static struct kobject *coretemp_kobject;
 
+void set_cpu_dvfs_limit(unsigned int freq)
+{
+	if (freq > cpu_max_freq)
+		freq = cpu_max_freq;
+
+	if (cpu_dvfs_limit != freq)
+		cpu_dvfs_limit = freq;
+}
+
 static int cpu_dvfs_check_thread(void *nothing)
 {
+	static unsigned int freq = 0;
+
 	while (!kthread_should_stop()) {
 		if (!cpu_max_freq) {
-			pr_warn("%s: cpufreq driver not ready !\n", __func__);
-			msleep(msecs_to_jiffies(80));
+			pr_warn("%s: DVFS: cpufreq driver not ready !\n", __func__);
+			msleep(msecs_to_jiffies(200));
 			continue;
 		}
 		break;
 	}
 
-	cpu_dvfs_limit = cpu_max_freq;
-	cpu_dvfs_down_temp = (cpu_dvfs_max_temp - 5);
-	pr_info("cpu_dvfs: DVFS thread started successfully.\n");
+	set_cpu_dvfs_limit(cpu_max_freq);
+	freq = cpu_dvfs_limit;
+	cpu_dvfs_min_temp = (cpu_dvfs_max_temp - 5);
+	pr_info("%s: DVFS: thread started successfully.\n", __func__);
 
 	while (!kthread_should_stop()) {
 
 		cpu_temp = get_cpu_temp();
 
-		if (cpu_temp >= cpu_dvfs_max_temp) {
-			if (cpu_dvfs_limit >= FREQ_STEP_2)
-				cpu_dvfs_limit = FREQ_STEP_1;
-			//else if (cpu_dvfs_limit == FREQ_STEP_1)
-				//cpu_dvfs_limit = FREQ_STEP_0;
-
-		} else if (cpu_temp < cpu_dvfs_down_temp) {
-			if (cpu_dvfs_limit == FREQ_STEP_0)
-				cpu_dvfs_limit = FREQ_STEP_1;
-			else if (cpu_dvfs_limit == FREQ_STEP_1)
-				cpu_dvfs_limit = FREQ_STEP_2;
+		if (cpu_dvfs_debug) {
+			if (cpu_temp > cpu_dvfs_peak_temp) {
+				cpu_dvfs_peak_temp = cpu_temp;
+				pr_info("%s: DVFS: peak_temp: %u C\n", __func__, cpu_dvfs_peak_temp);
+			}
 		}
 
-		if (cpu_dvfs_limit > cpu_max_freq)
-			cpu_dvfs_limit = cpu_max_freq;
-
-		if (cpu_temp > CPU_DVFS_SHUTDOWN_TEMP) {
-			cpu_dvfs_limit = FREQ_STEP_0;
-			pr_warn("%s: Shutdown temp reached: %d C !!! - shutting down ...\n", __func__ , cpu_temp);
+		if (cpu_temp >= CPU_DVFS_SHUTDOWN_TEMP) {
+			freq = FREQ_STEP_0;
+			set_cpu_dvfs_limit(freq);
+			pr_warn("%s: DVFS: cpu_dvfs_max_temp: %u C - cpu_dvfs_limit: %u KHz -  shutdown temp reached: %d C !!! - shutting down ...\n", __func__ , cpu_dvfs_max_temp, cpu_dvfs_limit, cpu_temp);
 			mutex_lock(&poweroff_lock);
 			/*
 			 * Queue a backup emergency shutdown in the event of
@@ -391,18 +396,22 @@ static int cpu_dvfs_check_thread(void *nothing)
 			break;
 		}
 
-		if (cpu_temp > CPU_DVFS_AVOID_SHUTDOWN_TEMP) {
-			cpu_dvfs_limit = FREQ_STEP_0;
-			pr_warn("%s: Critical temp reached: %d C !!! - Throttle CPU to min_freq for now ...\n", __func__ , cpu_temp);
+		if (cpu_temp >= CPU_DVFS_AVOID_SHUTDOWN_TEMP) {
+			freq = FREQ_STEP_0;
+			pr_warn("%s: DVFS: cpu_dvfs_max_temp: %u C - cpu_dvfs_limit: %u KHz - critical temp reached: %d C !!! - throttle CPU to min_freq for now ...\n", __func__ , cpu_dvfs_max_temp, cpu_dvfs_limit, cpu_temp);
+
+		} else if (cpu_temp > cpu_dvfs_max_temp) {
+			if (cpu_dvfs_limit >= FREQ_STEP_2)
+				freq = FREQ_STEP_1;
+
+		} else if (cpu_temp < cpu_dvfs_min_temp) {
+			if (cpu_dvfs_limit == FREQ_STEP_0)
+				freq = FREQ_STEP_1;
+			else if (cpu_dvfs_limit == FREQ_STEP_1)
+				freq = FREQ_STEP_2;
 		}
 
-		if (cpu_dvfs_debug) {
-			if (cpu_temp > cpu_dvfs_peak_temp) {
-				cpu_dvfs_peak_temp = cpu_temp;
-				pr_info("%s: peak_temp: %u C\n", __func__, cpu_dvfs_peak_temp);
-			}
-		}
-
+		set_cpu_dvfs_limit(freq);
 		msleep(msecs_to_jiffies(cpu_dvfs_check_delay));
 		continue;
 	}
@@ -980,7 +989,7 @@ static int __init coretemp_init(void)
 
 	cpu_dvfs_thread = kthread_run(cpu_dvfs_check_thread, NULL, "cpu_dvfsd");
 	if (IS_ERR(cpu_dvfs_thread)) {
-		pr_err("cpu_dvfs: failed to start DVFS thread\n");
+		pr_err("%s: DVFS: failed to start DVFS thread\n", __func__);
 		goto outdrv;
 	}
 	set_cpus_allowed_ptr(cpu_dvfs_thread, cpu_all_mask);
