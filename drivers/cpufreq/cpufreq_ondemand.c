@@ -23,7 +23,7 @@
 /* On-demand governor macros */
 #define DEF_FREQUENCY_UP_THRESHOLD		(95)
 #define DOWN_THRESHOLD_MARGIN			(25)
-#define DEF_SAMPLING_DOWN_FACTOR		(3)
+#define DEF_SAMPLING_DOWN_FACTOR		(20)
 #define MAX_SAMPLING_DOWN_FACTOR		(100000)
 #define MICRO_FREQUENCY_UP_THRESHOLD		(95)
 #define MIN_FREQUENCY_UP_THRESHOLD		(40)
@@ -134,6 +134,7 @@ static unsigned int od_dbs_update(struct cpufreq_policy *policy)
 static void update_down_threshold(struct dbs_data *dbs_data)
 {
 	down_threshold = ((dbs_data->up_threshold * DEF_FREQUENCY_STEP_0 / DEF_FREQUENCY_STEP_1) - DOWN_THRESHOLD_MARGIN);
+	pr_info("[%s] for CPU - new value: %u\n",__func__, down_threshold);
 }
 
 /************************** sysfs interface ************************/

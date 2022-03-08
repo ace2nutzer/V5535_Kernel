@@ -22,7 +22,8 @@
 
 #include "cpufreq_governor.h"
 
-#define CPUFREQ_DBS_MIN_SAMPLING_INTERVAL	(2 * TICK_NSEC / NSEC_PER_USEC)
+#define CPUFREQ_DBS_MIN_SAMPLING_INTERVAL	(10 * TICK_NSEC / NSEC_PER_USEC)
+#define MIN_SAMPLING_TIME_US				(20000)
 
 static DEFINE_PER_CPU(struct cpu_dbs_info, cpu_dbs);
 
@@ -53,7 +54,7 @@ ssize_t store_sampling_rate(struct gov_attr_set *attr_set, const char *buf,
 	int ret;
 
 	ret = sscanf(buf, "%u", &sampling_interval);
-	if (ret != 1 || sampling_interval < CPUFREQ_DBS_MIN_SAMPLING_INTERVAL)
+	if (ret != 1 || sampling_interval < dbs_data->sampling_rate_min)
 		return -EINVAL;
 
 	dbs_data->sampling_rate = sampling_interval;
@@ -434,14 +435,15 @@ int cpufreq_dbs_governor_init(struct cpufreq_policy *policy)
 	if (ret)
 		goto free_policy_dbs_info;
 
+	dbs_data->sampling_rate_min = CPUFREQ_DBS_MIN_SAMPLING_INTERVAL;
+	dbs_data->sampling_rate_min = max((unsigned int)MIN_SAMPLING_TIME_US, dbs_data->sampling_rate_min);
+
 	/*
 	 * The sampling interval should not be less than the transition latency
 	 * of the CPU and it also cannot be too small for dbs_update() to work
 	 * correctly.
 	 */
-	dbs_data->sampling_rate = max_t(unsigned int,
-					(5 * CPUFREQ_DBS_MIN_SAMPLING_INTERVAL),
-					cpufreq_policy_transition_delay_us(policy));
+	dbs_data->sampling_rate = max(dbs_data->sampling_rate_min, cpufreq_policy_transition_delay_us(policy));
 
 	if (!have_governor_per_policy())
 		gov->gdbs_data = dbs_data;

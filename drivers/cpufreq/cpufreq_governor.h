@@ -42,6 +42,7 @@ struct dbs_data {
 	struct gov_attr_set attr_set;
 	void *tuners;
 	unsigned int ignore_nice_load;
+	unsigned int sampling_rate_min;
 	unsigned int sampling_rate;
 	unsigned int sampling_down_factor;
 	unsigned int up_threshold;
