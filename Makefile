@@ -363,15 +363,15 @@ HOST_LFS_LIBS := $(shell getconf LFS_LIBS 2>/dev/null)
 
 HOSTCC       = gcc
 HOSTCXX      = g++
-HOSTCFLAGS   := -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 \
-		-fomit-frame-pointer -std=gnu89 $(HOST_LFS_CFLAGS)
-HOSTCXXFLAGS := -O2 $(HOST_LFS_CFLAGS)
+HOSTCFLAGS   := -Wall -Wmissing-prototypes -Wstrict-prototypes -O3 \
+		-fomit-frame-pointer -fno-strict-aliasing -std=gnu89 $(HOST_LFS_CFLAGS)
+HOSTCXXFLAGS := -O3 -fomit-frame-pointer -fno-strict-aliasing $(HOST_LFS_CFLAGS)
 HOSTLDFLAGS  := $(HOST_LFS_LDFLAGS)
 HOST_LOADLIBES := $(HOST_LFS_LIBS)
 
 # Host specific Flags
-HOSTCFLAGS   += -march=core2 -mtune=core2 -mfpmath=sse -mssse3 -mhard-float -ftree-vectorize -pipe
-HOSTCXXFLAGS += -march=core2 -mtune=core2 -mfpmath=sse -mssse3 -mhard-float -ftree-vectorize -pipe
+HOSTCFLAGS   += -march=core2 -mcpu=core2 -mtune=core2 -mfpmath=sse -mssse3 -mhard-float -pipe
+HOSTCXXFLAGS += -march=core2 -mcpu=core2 -mtune=core2 -mfpmath=sse -mssse3 -mhard-float -pipe
 
 # Make variables (CC, etc...)
 AS		= $(CROSS_COMPILE)as
@@ -418,8 +418,13 @@ LINUXINCLUDE    := \
 		-I$(objtree)/include \
 		$(USERINCLUDE)
 
-KBUILD_AFLAGS   := -D__ASSEMBLY__
-KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
+ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
+KBUILD_CFLAGS   := -Os
+else
+KBUILD_CFLAGS   := -O3
+endif
+
+KBUILD_CFLAGS   += -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common -fshort-wchar \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
@@ -428,8 +433,8 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -pipe
 
 # Target specific Flags
-KBUILD_CFLAGS   += \
-		   -march=core2 \
+CFLAGS_ABI	:= -march=core2 \
+		   -mcpu=core2 \
 		   -mtune=core2 \
 		   -mfpmath=sse \
 		   -msoft-float \
@@ -442,7 +447,9 @@ KBUILD_CFLAGS   += \
 		   -mno-sse3 \
 		   -mno-ssse3
 
+KBUILD_CFLAGS   += $(CFLAGS_ABI)
 
+KBUILD_AFLAGS   := -D__ASSEMBLY__ $(CFLAGS_ABI)
 KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
@@ -673,12 +680,6 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning, format-overflow)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, int-in-bool-context)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, address-of-packed-member)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, attribute-alias)
-
-ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
-KBUILD_CFLAGS   += -Os
-else
-KBUILD_CFLAGS   += -O2
-endif
 
 # Tell gcc to never replace conditional load with a non-conditional one
 KBUILD_CFLAGS	+= $(call cc-option,--param=allow-store-data-races=0)

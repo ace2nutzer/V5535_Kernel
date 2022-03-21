@@ -7,8 +7,8 @@
 #
 cflags-$(CONFIG_X86_32)		:= -march=i386
 cflags-$(CONFIG_X86_64)		:= -mcmodel=small
-cflags-$(CONFIG_X86)		+= -m$(BITS) -D__KERNEL__ -O2 \
-				   -fPIC -fno-strict-aliasing -mno-red-zone \
+cflags-$(CONFIG_X86)		+= -m$(BITS) -D__KERNEL__ -O3 \
+				   -fPIC -fno-strict-aliasing -fomit-frame-pointer -mno-red-zone \
 				   -mno-mmx -mno-sse
 
 cflags-$(CONFIG_ARM64)		:= $(subst -pg,,$(KBUILD_CFLAGS)) -fpie

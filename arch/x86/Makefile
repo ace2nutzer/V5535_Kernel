@@ -31,9 +31,9 @@ endif
 CODE16GCC_CFLAGS := -m32 -Wa,$(srctree)/arch/x86/boot/code16gcc.h
 M16_CFLAGS	 := $(call cc-option, -m16, $(CODE16GCC_CFLAGS))
 
-REALMODE_CFLAGS	:= $(M16_CFLAGS) -O2 -D__KERNEL__ \
+REALMODE_CFLAGS	:= $(M16_CFLAGS) -O3 -D__KERNEL__ \
 		   -DDISABLE_BRANCH_PROFILING \
-		   -Wall -Wstrict-prototypes -march=core2 -mtune=core2 -mgeneral-regs-only -mregparm=3 \
+		   -Wall -Wstrict-prototypes -march=core2 -mcpu=core2 -mtune=core2 -mgeneral-regs-only -mregparm=3 \
 		   -fno-strict-aliasing -fomit-frame-pointer -fno-pic -pipe \
 		   -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-ssse3
 
