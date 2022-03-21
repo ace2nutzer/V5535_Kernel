@@ -79,7 +79,7 @@ static unsigned int cpu_dvfs_max_temp = 95;
 static unsigned int cpu_dvfs_peak_temp = 0;
 static int cpu_temp = 0;
 static bool cpu_dvfs_debug = false;
-static unsigned int cpu_dvfs_check_delay = 12;	/* ms */
+static unsigned int cpu_dvfs_check_delay = 20;	/* ms */
 unsigned int cpu_dvfs_limit = 0;
 extern unsigned int cpu_max_freq;
 static unsigned int cpu_dvfs_min_temp = 0;
@@ -359,7 +359,7 @@ static int cpu_dvfs_check_thread(void *nothing)
 	while (!kthread_should_stop()) {
 		if (!cpu_max_freq) {
 			pr_warn("%s: DVFS: cpufreq driver not ready !\n", __func__);
-			msleep(msecs_to_jiffies(200));
+			msleep(200);
 			continue;
 		}
 		break;
