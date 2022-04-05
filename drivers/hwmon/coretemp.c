@@ -79,7 +79,7 @@ static unsigned int cpu_dvfs_max_temp = 95;
 static unsigned int cpu_dvfs_peak_temp = 0;
 static int cpu_temp = 0;
 static bool cpu_dvfs_debug = false;
-static unsigned int cpu_dvfs_check_delay = 20;	/* ms */
+static unsigned int cpu_dvfs_check_delay = 10;	/* ms */
 unsigned int cpu_dvfs_limit = 0;
 extern unsigned int cpu_max_freq;
 static unsigned int cpu_dvfs_min_temp = 0;
@@ -87,10 +87,10 @@ static struct task_struct *cpu_dvfs_thread = NULL;
 
 #define CPU_DVFS_RANGE_TEMP_MIN		(45)	/* °C */
 #define CPU_DVFS_RANGE_TEMP_MAX		(95)	/* °C */
-#define CPU_DVFS_TJMAX				(100)	/* °C */
-#define CPU_DVFS_AVOID_SHUTDOWN_TEMP		(105)	/* °C */
-#define CPU_DVFS_SHUTDOWN_TEMP			(110)	/* °C */
-#define ATTR_IDX				(3)	/* Core 1 for MCORE2 */
+#define CPU_DVFS_TJMAX			(100)	/* °C */
+#define CPU_DVFS_AVOID_SHUTDOWN_TEMP	(105)	/* °C */
+#define CPU_DVFS_SHUTDOWN_TEMP		(110)	/* °C */
+#define ATTR_IDX			(3)	/* Core 1 for MCORE2 */
 
 #define FREQ_STEP_0		(1200000)
 #define FREQ_STEP_1		(1600000)
@@ -405,10 +405,7 @@ static int cpu_dvfs_check_thread(void *nothing)
 				freq = FREQ_STEP_1;
 
 		} else if (cpu_temp < cpu_dvfs_min_temp) {
-			if (cpu_dvfs_limit == FREQ_STEP_0)
-				freq = FREQ_STEP_1;
-			else if (cpu_dvfs_limit == FREQ_STEP_1)
-				freq = FREQ_STEP_2;
+			freq = FREQ_STEP_2;
 		}
 
 		set_cpu_dvfs_limit(freq);
