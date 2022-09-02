@@ -35,12 +35,14 @@ REALMODE_CFLAGS	:= $(M16_CFLAGS) -O3 -D__KERNEL__ \
 		   -DDISABLE_BRANCH_PROFILING \
 		   -Wall -Wstrict-prototypes -march=core2 -mcpu=core2 -mtune=core2 -mgeneral-regs-only -mregparm=3 \
 		   -fno-strict-aliasing -fomit-frame-pointer -fno-pic -pipe \
-		   -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-ssse3
+		   -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-ssse3 \
+		   $(call cc-option,-fcf-protection=none)
 
 REALMODE_CFLAGS += $(call __cc-option, $(CC), $(REALMODE_CFLAGS), -ffreestanding)
 REALMODE_CFLAGS += $(call __cc-option, $(CC), $(REALMODE_CFLAGS), -fno-stack-protector)
 REALMODE_CFLAGS += $(call __cc-option, $(CC), $(REALMODE_CFLAGS), -Wno-address-of-packed-member)
 REALMODE_CFLAGS += $(call __cc-option, $(CC), $(REALMODE_CFLAGS), $(cc_stack_align4))
+REALMODE_CFLAGS += $(CLANG_FLAGS)
 export REALMODE_CFLAGS
 
 # BITS is used as extension for files which are available in a 32 bit
