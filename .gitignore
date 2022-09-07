@@ -128,5 +128,6 @@ clean
 clean.sh
 edit_kernel.sh
 build_kernel.sh
+install_kernel.sh
 dmesg.sh
 rejects
