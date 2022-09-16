@@ -23,7 +23,7 @@
 /* On-demand governor macros */
 #define DEF_FREQUENCY_UP_THRESHOLD		(95)
 #define DOWN_THRESHOLD_MARGIN			(25)
-#define DEF_SAMPLING_DOWN_FACTOR		(20)
+#define DEF_SAMPLING_DOWN_FACTOR		(50)
 #define MAX_SAMPLING_DOWN_FACTOR		(100000)
 #define MICRO_FREQUENCY_UP_THRESHOLD		(95)
 #define MIN_FREQUENCY_UP_THRESHOLD		(40)
@@ -53,22 +53,18 @@ static void od_update(struct cpufreq_policy *policy)
 	if (load >= dbs_data->up_threshold) {
 
 		/* if we are already at full speed then break out early */
-		//if (policy->cur == policy->max)
-			//return;
-
-		/* DVFS */
-		if (policy->cur == cpu_dvfs_limit)
+		if (policy->cur == policy->max && policy->cur == cpu_dvfs_limit)
 			return;
 
 		if (!dbs_data->boost) {
 			if (policy->cur == DEF_FREQUENCY_STEP_0)
 				requested_freq = DEF_FREQUENCY_STEP_1;
-			else if (policy->cur == DEF_FREQUENCY_STEP_1)
-				requested_freq = DEF_FREQUENCY_STEP_2;
 			else
 				requested_freq = policy->max;
+
 			if (requested_freq > policy->max)
 				requested_freq = policy->max;
+
 		} else {
 			/* Boost */
 			requested_freq = policy->max;
@@ -79,7 +75,7 @@ static void od_update(struct cpufreq_policy *policy)
 			requested_freq = cpu_dvfs_limit;
 
 		/* If switching to max speed, apply sampling_down_factor */
-		if (requested_freq == policy->max)
+		if (requested_freq == policy->max || requested_freq == cpu_dvfs_limit)
 			policy_dbs->rate_mult =
 				dbs_data->sampling_down_factor;
 
@@ -100,10 +96,9 @@ static void od_update(struct cpufreq_policy *policy)
 
 	/* Check for frequency decrease */
 	if (load < down_threshold) {
+
 		if (policy->cur >= DEF_FREQUENCY_STEP_2)
 			requested_freq = DEF_FREQUENCY_STEP_1;
-		else if (policy->cur == DEF_FREQUENCY_STEP_1)
-			requested_freq = DEF_FREQUENCY_STEP_0;
 		else
 			requested_freq = policy->min;
 
@@ -116,8 +111,6 @@ static void od_update(struct cpufreq_policy *policy)
 
 		__cpufreq_driver_target(policy, requested_freq,
 				CPUFREQ_RELATION_L);
-
-		return;
 	}
 }
 

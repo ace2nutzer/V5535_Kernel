@@ -23,7 +23,6 @@
 #include "cpufreq_governor.h"
 
 #define CPUFREQ_DBS_MIN_SAMPLING_INTERVAL	(10 * TICK_NSEC / NSEC_PER_USEC)
-#define MIN_SAMPLING_TIME_US				(20000)
 
 static DEFINE_PER_CPU(struct cpu_dbs_info, cpu_dbs);
 
@@ -436,7 +435,6 @@ int cpufreq_dbs_governor_init(struct cpufreq_policy *policy)
 		goto free_policy_dbs_info;
 
 	dbs_data->sampling_rate_min = CPUFREQ_DBS_MIN_SAMPLING_INTERVAL;
-	dbs_data->sampling_rate_min = max((unsigned int)MIN_SAMPLING_TIME_US, dbs_data->sampling_rate_min);
 
 	/*
 	 * The sampling interval should not be less than the transition latency

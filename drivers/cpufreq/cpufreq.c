@@ -30,10 +30,8 @@
 #include <linux/syscore_ops.h>
 #include <linux/tick.h>
 #include <trace/events/power.h>
-
 #include <linux/moduleparam.h>
 
-extern void set_cpu_dvfs_limit(unsigned int freq);
 unsigned int cpu_max_freq = 0;
 
 static LIST_HEAD(cpufreq_policy_list);
@@ -690,7 +688,7 @@ static int cpufreq_set_policy(struct cpufreq_policy *policy,
 /**
  * cpufreq_per_cpu_attr_write() / store_##file_name() - sysfs write access
  */
-#define store_one(file_name, object)			\
+#define store_one(file_name, object)					\
 static ssize_t store_##file_name					\
 (struct cpufreq_policy *policy, const char *buf, size_t count)		\
 {									\
@@ -709,8 +707,8 @@ static ssize_t store_##file_name					\
 	ret = cpufreq_set_policy(policy, &new_policy);			\
 	if (!ret) {							\
 		policy->user_policy.object = temp;			\
-		cpu_max_freq = policy->user_policy.max;		\
-		set_cpu_dvfs_limit(cpu_max_freq);			\
+		cpu_max_freq = policy->user_policy.max;			\
+		sanitize_cpu_dvfs(false);				\
 	}								\
 									\
 	return ret ? ret : count;					\
@@ -1026,7 +1024,7 @@ static int cpufreq_add_dev_interface(struct cpufreq_policy *policy)
 		else
 			cpu_max_freq = policy->cpuinfo.max_freq;
 
-		set_cpu_dvfs_limit(cpu_max_freq);
+		sanitize_cpu_dvfs(false);
 	}
 
 	return 0;
