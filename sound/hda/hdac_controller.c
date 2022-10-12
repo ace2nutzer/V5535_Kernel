@@ -22,7 +22,7 @@ static void azx_clear_corbrp(struct hdac_bus *bus)
 		udelay(1);
 	}
 	if (timeout <= 0)
-		dev_err(bus->dev, "CORB reset timeout#1, CORBRP = %d\n",
+		dev_warn(bus->dev, "CORB reset timeout#1, CORBRP = %d\n",
 			snd_hdac_chip_readw(bus, CORBRP));
 
 	snd_hdac_chip_writew(bus, CORBRP, 0);
