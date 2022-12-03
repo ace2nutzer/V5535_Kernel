@@ -1,0 +1,27 @@
+1. Open a new terminal emulator and download the source code:
+git clone https://github.com/ace2nutzer/V5535_Kernel.git
+cd V5535_Kernel
+
+2a. # clean source tree
+./clean.sh
+
+2b. # clean more deep
+./clean
+
+3. # edit kernel options if needed
+./edit_kernel.sh
+
+4. # build kernel
+./build_kernel.sh
+
+5. # install kernel
+./install_kernel.sh
+
+### HOW TO FIX BUILD ERRORS ###
+e.g. if you get error: git: command not found or similar, then simply install the missing packages like this:
+open a new terminal emulator and install missing "git" tool:
+sudo apt-get install git
+
+### NOTE ###
+You are only allowed to download, edit, build and use the generated debian-package ONLY FOR YOUR OWN USAGE.
+!! DO NOT RESTRIBUTE !!
