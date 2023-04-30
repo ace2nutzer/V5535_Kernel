@@ -80,7 +80,7 @@ static unsigned int user_cpu_dvfs_max_temp = 100;
 static unsigned int cpu_dvfs_peak_temp = 0;
 static int cpu_temp = 0;
 static bool cpu_dvfs_debug = false;
-static unsigned int cpu_dvfs_sleep_time = 8;	/* ms */
+static unsigned int cpu_dvfs_sleep_time = 4;	/* ms */
 unsigned int cpu_dvfs_limit = 0;
 extern unsigned int cpu_max_freq;
 static unsigned int cpu_dvfs_min_temp = 0;
@@ -370,11 +370,11 @@ static int cpu_dvfs_check_thread(void *null)
 		cpu_temp = get_cpu_temp();
 
 		if (cpu_temp == prev_temp) {
-			msleep(msecs_to_jiffies(cpu_dvfs_sleep_time));
+			msleep(cpu_dvfs_sleep_time);
 			continue;
 		}
 
-		if (cpu_dvfs_debug) {
+		if (unlikely(cpu_dvfs_debug)) {
 			if (cpu_temp > cpu_dvfs_peak_temp) {
 				cpu_dvfs_peak_temp = cpu_temp;
 				pr_info("%s: CPU DVFS: peak_temp: %u C\n", __func__, cpu_dvfs_peak_temp);
@@ -420,7 +420,7 @@ static int cpu_dvfs_check_thread(void *null)
 
 		prev_temp = cpu_temp;
 		set_cpu_dvfs_limit(freq);
-		msleep(msecs_to_jiffies(cpu_dvfs_sleep_time));
+		msleep(cpu_dvfs_sleep_time);
 		continue;
 	}
 
