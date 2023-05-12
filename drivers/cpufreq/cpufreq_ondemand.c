@@ -20,22 +20,23 @@
 
 #include "cpufreq_ondemand.h"
 
+extern unsigned int cpu_dvfs_limit;
+
 /* On-demand governor macros */
 #define DEF_FREQUENCY_UP_THRESHOLD		(95)
 #define DOWN_THRESHOLD_MARGIN			(25)
-#define DEF_SAMPLING_DOWN_FACTOR		(50)
+#define DEF_SAMPLING_DOWN_FACTOR		(4)
 #define MAX_SAMPLING_DOWN_FACTOR		(100000)
 #define MICRO_FREQUENCY_UP_THRESHOLD		(95)
 #define MIN_FREQUENCY_UP_THRESHOLD		(40)
 #define MAX_FREQUENCY_UP_THRESHOLD		(100)
 #define DEF_BOOST				(0)
+#define IO_IS_BUSY				(0)
+#define IGNORE_NICE_LOAD			(0)
 
 #define DEF_FREQUENCY_STEP_0			(1200000)
 #define DEF_FREQUENCY_STEP_1			(1600000)
 #define DEF_FREQUENCY_STEP_2			(2000000)
-
-static unsigned int down_threshold = 0;
-extern unsigned int cpu_dvfs_limit;
 
 /*
  * Every sampling_rate, we check, if current idle time is less than 20%
@@ -95,7 +96,7 @@ static void od_update(struct cpufreq_policy *policy)
 		return;
 
 	/* Check for frequency decrease */
-	if (load < down_threshold) {
+	if (load < dbs_data->down_threshold) {
 
 		if (policy->cur >= DEF_FREQUENCY_STEP_2)
 			requested_freq = DEF_FREQUENCY_STEP_1;
@@ -126,8 +127,8 @@ static unsigned int od_dbs_update(struct cpufreq_policy *policy)
 
 static void update_down_threshold(struct dbs_data *dbs_data)
 {
-	down_threshold = ((dbs_data->up_threshold * DEF_FREQUENCY_STEP_0 / DEF_FREQUENCY_STEP_1) - DOWN_THRESHOLD_MARGIN);
-	pr_info("[%s] for CPU - new value: %u\n",__func__, down_threshold);
+	dbs_data->down_threshold = ((dbs_data->up_threshold * DEF_FREQUENCY_STEP_0 / DEF_FREQUENCY_STEP_1) - DOWN_THRESHOLD_MARGIN);
+	pr_info("[%s] for CPU: %d - new value: %u\n",__func__, smp_processor_id(), dbs_data->down_threshold);
 }
 
 /************************** sysfs interface ************************/
@@ -303,8 +304,8 @@ static int od_init(struct dbs_data *dbs_data)
 	}
 
 	dbs_data->sampling_down_factor = DEF_SAMPLING_DOWN_FACTOR;
-	dbs_data->ignore_nice_load = 0;
-	dbs_data->io_is_busy = 0;
+	dbs_data->ignore_nice_load = IGNORE_NICE_LOAD;
+	dbs_data->io_is_busy = IO_IS_BUSY;
 	dbs_data->boost = DEF_BOOST;
 
 	dbs_data->tuners = tuners;

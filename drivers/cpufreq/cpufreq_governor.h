@@ -46,6 +46,7 @@ struct dbs_data {
 	unsigned int sampling_rate;
 	unsigned int sampling_down_factor;
 	unsigned int up_threshold;
+	unsigned int down_threshold;
 	unsigned int io_is_busy;
 	bool boost;
 };
