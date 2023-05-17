@@ -925,4 +925,6 @@ int cpufreq_generic_init(struct cpufreq_policy *policy,
 		unsigned int transition_latency);
 
 void sanitize_cpu_dvfs(bool sanitize);
+void cpufreq_max_boost(unsigned int cpu, bool boost);
+extern unsigned int cpu_max_freq;
 #endif /* _LINUX_CPUFREQ_H */

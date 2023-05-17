@@ -32,6 +32,7 @@
 #include <trace/events/power.h>
 #include <linux/moduleparam.h>
 
+static unsigned int cpu_min_freq = 0;
 unsigned int cpu_max_freq = 0;
 
 static LIST_HEAD(cpufreq_policy_list);
@@ -463,13 +464,18 @@ void cpufreq_enable_fast_switch(struct cpufreq_policy *policy)
 {
 	lockdep_assert_held(&policy->rwsem);
 
-	if (!policy->fast_switch_possible)
+	if (!policy->fast_switch_possible) {
+		pr_warn("CPU%u: Fast frequency switching not supported\n",
+				policy->cpu);
 		return;
+	}
 
 	mutex_lock(&cpufreq_fast_switch_lock);
 	if (cpufreq_fast_switch_count >= 0) {
 		cpufreq_fast_switch_count++;
 		policy->fast_switch_enabled = true;
+		pr_info("CPU%u: Fast frequency switching enabled\n",
+			policy->cpu);
 	} else {
 		pr_warn("CPU%u: Fast frequency switching not enabled\n",
 			policy->cpu);
@@ -707,7 +713,8 @@ static ssize_t store_##file_name					\
 	ret = cpufreq_set_policy(policy, &new_policy);			\
 	if (!ret) {							\
 		policy->user_policy.object = temp;			\
-		cpu_max_freq = policy->user_policy.max;			\
+		cpu_min_freq = policy->min;				\
+		cpu_max_freq = policy->max;				\
 		sanitize_cpu_dvfs(false);				\
 	}								\
 									\
@@ -716,6 +723,24 @@ static ssize_t store_##file_name					\
 
 store_one(scaling_min_freq, min);
 store_one(scaling_max_freq, max);
+
+void cpufreq_max_boost(unsigned int cpu, bool boost)
+{
+	struct cpufreq_policy *policy = NULL;
+
+	policy = cpufreq_cpu_get(cpu);
+	if (policy) {
+		cpufreq_cpu_put(policy);
+	} else {
+		pr_err("%s: failed for policy%u\n", __func__, cpu);
+		return;
+	}
+
+	if (boost)
+		policy->min = policy->max;
+	else
+		policy->min = cpu_min_freq;
+}
 
 /**
  * show_cpuinfo_cur_freq - current CPU frequency as detected by hardware
@@ -994,7 +1019,6 @@ static int cpufreq_add_dev_interface(struct cpufreq_policy *policy)
 {
 	struct freq_attr **drv_attr;
 	int ret = 0;
-	unsigned int limit;
 
 	/* set up files for this cpu device */
 	drv_attr = cpufreq_driver->attr;
@@ -1018,13 +1042,6 @@ static int cpufreq_add_dev_interface(struct cpufreq_policy *policy)
 		ret = sysfs_create_file(&policy->kobj, &bios_limit.attr);
 		if (ret)
 			return ret;
-
-		if (!cpufreq_driver->bios_limit(policy->cpu, &limit))
-			cpu_max_freq = limit;
-		else
-			cpu_max_freq = policy->cpuinfo.max_freq;
-
-		sanitize_cpu_dvfs(false);
 	}
 
 	return 0;
@@ -1246,6 +1263,8 @@ static int cpufreq_online(unsigned int cpu)
 	if (new_policy) {
 		policy->user_policy.min = policy->min;
 		policy->user_policy.max = policy->max;
+		cpu_min_freq = policy->min;
+		cpu_max_freq = policy->max;
 
 		for_each_cpu(j, policy->related_cpus) {
 			per_cpu(cpufreq_cpu_data, j) = policy;
