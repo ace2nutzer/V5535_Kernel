@@ -585,7 +585,7 @@ static int __init acpi_cpufreq_early_init(void)
  * detected, this has a side effect of making CPU run at a different speed
  * than OS intended it to run at. Detect it and handle it cleanly.
  */
-static int bios_with_sw_any_bug;
+static int bios_with_sw_any_bug = 1;
 
 static int sw_any_bug_found(const struct dmi_system_id *d)
 {
