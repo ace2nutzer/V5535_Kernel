@@ -17,10 +17,9 @@
 #include <linux/slab.h>
 #include <linux/tick.h>
 #include <linux/sched/cpufreq.h>
+#include <linux/cpufreq.h>
 
 #include "cpufreq_ondemand.h"
-
-extern unsigned int cpu_dvfs_limit;
 
 /* On-demand governor macros */
 #define DEF_FREQUENCY_UP_THRESHOLD		(95)
@@ -54,31 +53,24 @@ static void od_update(struct cpufreq_policy *policy)
 	if (load >= dbs_data->up_threshold) {
 
 		/* if we are already at full speed then break out early */
-		if (policy->cur == policy->max && policy->cur == cpu_dvfs_limit)
+		if (policy->cur == policy->max)
 			return;
 
 		if (!dbs_data->boost) {
 			if (policy->cur == DEF_FREQUENCY_STEP_0)
 				requested_freq = DEF_FREQUENCY_STEP_1;
 			else
-				requested_freq = policy->max;
-
-			if (requested_freq > policy->max)
-				requested_freq = policy->max;
+				requested_freq = DEF_FREQUENCY_STEP_2;
 
 		} else {
 			/* Boost */
 			requested_freq = policy->max;
+			/* If switching to max speed, apply sampling_down_factor */
+			policy_dbs->rate_mult = dbs_data->sampling_down_factor;
 		}
 
-		/* DVFS */
-		if (requested_freq > cpu_dvfs_limit)
-			requested_freq = cpu_dvfs_limit;
-
-		/* If switching to max speed, apply sampling_down_factor */
-		if (requested_freq == policy->max || requested_freq == cpu_dvfs_limit)
-			policy_dbs->rate_mult =
-				dbs_data->sampling_down_factor;
+		if (requested_freq > policy->max)
+			requested_freq = policy->max;
 
 		__cpufreq_driver_target(policy, requested_freq,
 			CPUFREQ_RELATION_H);
@@ -101,14 +93,10 @@ static void od_update(struct cpufreq_policy *policy)
 		if (policy->cur >= DEF_FREQUENCY_STEP_2)
 			requested_freq = DEF_FREQUENCY_STEP_1;
 		else
-			requested_freq = policy->min;
+			requested_freq = DEF_FREQUENCY_STEP_0;
 
 		if (requested_freq < policy->min)
 			requested_freq = policy->min;
-
-		/* DVFS */
-		if (requested_freq > cpu_dvfs_limit)
-			requested_freq = cpu_dvfs_limit;
 
 		__cpufreq_driver_target(policy, requested_freq,
 				CPUFREQ_RELATION_L);
@@ -311,9 +299,6 @@ static int od_init(struct dbs_data *dbs_data)
 	dbs_data->tuners = tuners;
 
 	update_down_threshold(dbs_data);
-
-	if (!cpu_dvfs_limit)
-		cpu_dvfs_limit = DEF_FREQUENCY_STEP_2;
 
 	return 0;
 }
