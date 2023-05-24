@@ -62,15 +62,16 @@ static void od_update(struct cpufreq_policy *policy)
 			else
 				requested_freq = DEF_FREQUENCY_STEP_2;
 
+			if (requested_freq > policy->max)
+				requested_freq = policy->max;
 		} else {
 			/* Boost */
 			requested_freq = policy->max;
-			/* If switching to max speed, apply sampling_down_factor */
-			policy_dbs->rate_mult = dbs_data->sampling_down_factor;
 		}
 
-		if (requested_freq > policy->max)
-			requested_freq = policy->max;
+		/* If switching to max speed, apply sampling_down_factor */
+		if (requested_freq == policy->max)
+			policy_dbs->rate_mult = dbs_data->sampling_down_factor;
 
 		__cpufreq_driver_target(policy, requested_freq,
 			CPUFREQ_RELATION_H);
@@ -116,7 +117,7 @@ static unsigned int od_dbs_update(struct cpufreq_policy *policy)
 static void update_down_threshold(struct dbs_data *dbs_data)
 {
 	dbs_data->down_threshold = ((dbs_data->up_threshold * DEF_FREQUENCY_STEP_0 / DEF_FREQUENCY_STEP_1) - DOWN_THRESHOLD_MARGIN);
-	pr_info("[%s] for CPU: %d - new value: %u\n",__func__, smp_processor_id(), dbs_data->down_threshold);
+	pr_info("[%s] for CPU - new value: %u\n",__func__, dbs_data->down_threshold);
 }
 
 /************************** sysfs interface ************************/
