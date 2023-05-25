@@ -716,7 +716,7 @@ static ssize_t store_##file_name					\
 store_one(scaling_min_freq, min);
 store_one(scaling_max_freq, max);
 
-void cpufreq_max_boost(unsigned int cpu, bool boost)
+inline void cpufreq_max_boost(unsigned int cpu, bool boost)
 {
 	struct cpufreq_policy *policy = NULL;
 
