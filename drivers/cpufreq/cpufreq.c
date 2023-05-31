@@ -705,8 +705,8 @@ static ssize_t store_##file_name					\
 	ret = cpufreq_set_policy(policy, &new_policy);			\
 	if (!ret) {							\
 		policy->user_policy.object = temp;			\
-		cpu_min_freq = policy->min;				\
-		cpu_max_freq = policy->max;				\
+		cpu_min_freq = policy->user_policy.min;			\
+		cpu_max_freq = policy->user_policy.max;			\
 		sanitize_cpu_dvfs(false);				\
 	}								\
 									\
