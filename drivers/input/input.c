@@ -43,10 +43,10 @@ static DEFINE_IDA(input_ida);
 static LIST_HEAD(input_dev_list);
 static LIST_HEAD(input_handler_list);
 
-static bool use_input_booster = false;
+static bool use_input_booster = true;
 module_param(use_input_booster, bool, 0644);
 
-static unsigned int input_booster_time = 80; /* ms */
+static unsigned int input_booster_time = 1000; /* ms */
 module_param(input_booster_time, uint, 0644);
 
 static bool input_booster_ongoing = false;
