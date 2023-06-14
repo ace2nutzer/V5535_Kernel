@@ -32,7 +32,7 @@
 #include <trace/events/power.h>
 #include <linux/moduleparam.h>
 
-static unsigned int cpu_min_freq = 0;
+unsigned int cpu_min_freq = 0;
 unsigned int cpu_max_freq = 0;
 
 static LIST_HEAD(cpufreq_policy_list);
@@ -693,6 +693,9 @@ static ssize_t store_##file_name					\
 	int ret, temp;							\
 	struct cpufreq_policy new_policy;				\
 									\
+	/* fix for input booster */					\
+	policy->min = cpu_min_freq;					\
+									\
 	memcpy(&new_policy, policy, sizeof(*policy));			\
 	new_policy.min = policy->user_policy.min;			\
 	new_policy.max = policy->user_policy.max;			\
@@ -724,7 +727,7 @@ inline void cpufreq_max_boost(unsigned int cpu, bool boost)
 	if (policy) {
 		cpufreq_cpu_put(policy);
 	} else {
-		pr_err("%s: failed for policy%u\n", __func__, cpu);
+		pr_warn("%s: policy%u is not ready!\n", __func__, cpu);
 		return;
 	}
 
@@ -1255,8 +1258,10 @@ static int cpufreq_online(unsigned int cpu)
 	if (new_policy) {
 		policy->user_policy.min = policy->min;
 		policy->user_policy.max = policy->max;
-		cpu_min_freq = policy->min;
-		cpu_max_freq = policy->max;
+		if (!cpu_min_freq)
+			cpu_min_freq = policy->min;
+		if (!cpu_max_freq)
+			cpu_max_freq = policy->max;
 
 		for_each_cpu(j, policy->related_cpus) {
 			per_cpu(cpufreq_cpu_data, j) = policy;
@@ -2268,7 +2273,7 @@ static int cpufreq_set_policy(struct cpufreq_policy *policy,
 
 	policy->cached_target_freq = UINT_MAX;
 
-	pr_debug("new min and max freqs are %u - %u kHz\n",
+	pr_info("new min and max freqs are %u - %u kHz\n",
 		 policy->min, policy->max);
 
 	if (cpufreq_driver->setpolicy) {

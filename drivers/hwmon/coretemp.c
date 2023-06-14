@@ -79,14 +79,12 @@ static unsigned int user_cpu_dvfs_max_temp = 100;
 static unsigned int cpu_dvfs_max_temp = 0;
 static unsigned int cpu_dvfs_peak_temp = 0;
 static int cpu_temp = 0;
-static bool sanitize = false;
-static unsigned int cpu_dvfs_sleep_time = 4;	/* ms */
+static unsigned int cpu_dvfs_sleep_time = 6;	/* ms */
 static unsigned int cpu_dvfs_limit = 0;
 static unsigned int cpu_dvfs_min_temp = 0;
 static struct task_struct *cpu_dvfs_thread = NULL;
 
-#define CPU_DVFS_RANGE_TEMP_MIN		(55)	/* °C */
-#define CPU_DVFS_RANGE_TEMP_MAX		(100)	/* °C */
+#define CPU_DVFS_RANGE_TEMP_MIN		(45)	/* °C */
 #define CPU_DVFS_TJMAX			(100)	/* °C */
 #define CPU_DVFS_AVOID_SHUTDOWN_TEMP	(105)	/* °C */
 #define CPU_DVFS_SHUTDOWN_TEMP		(110)	/* °C */
@@ -94,6 +92,7 @@ static struct task_struct *cpu_dvfs_thread = NULL;
 #define CPU_DVFS_STEP_DOWN_TEMP		(5)	/* °C */
 #define CORE0_TEMP			(2)	/* Core 0 temp sensor for MCORE2 */
 #define CORE1_TEMP			(3)	/* Core 1 temp sensor for MCORE2 */
+#define CPU_DVFS_DEBUG			(0)
 
 #define FREQ_STEP_0		(1200000)
 #define FREQ_STEP_1		(1600000)
@@ -194,63 +193,36 @@ static ssize_t show_ttarget(struct device *dev,
 	return sprintf(buf, "%d\n", pdata->core_data[attr->index]->ttarget);
 }
 
+static inline int get_cpu_temp(void)
+{
+	struct platform_data *pdata = dev_get_drvdata(_dev);
+	struct temp_data *tdata = NULL;
+	u32 eax = 0, edx = 0;
+	int core0_temp = 0, core1_temp = 0;
+
+	tdata = pdata->core_data[CORE0_TEMP];
+	mutex_lock(&tdata->update_lock);
+	rdmsr_on_cpu(tdata->cpu, tdata->status_reg, &eax, &edx);
+	tdata->temp = tdata->tjmax - ((eax >> 16) & 0x7f) * 1000;
+	tdata->valid = 1;
+	core0_temp = tdata->temp;
+	mutex_unlock(&tdata->update_lock);
+
+	tdata = pdata->core_data[CORE1_TEMP];
+	mutex_lock(&tdata->update_lock);
+	rdmsr_on_cpu(tdata->cpu, tdata->status_reg, &eax, &edx);
+	tdata->temp = tdata->tjmax - ((eax >> 16) & 0x7f) * 1000;
+	tdata->valid = 1;
+	core1_temp = tdata->temp;
+	mutex_unlock(&tdata->update_lock);
+
+	return max(core0_temp, core1_temp) / 1000;
+}
+
 static ssize_t show_temp(struct device *dev,
 			struct device_attribute *devattr, char *buf)
 {
-	u32 eax, edx;
-	struct sensor_device_attribute *attr = to_sensor_dev_attr(devattr);
-	struct platform_data *pdata = dev_get_drvdata(dev);
-	struct temp_data *tdata = pdata->core_data[attr->index];
-
-	mutex_lock(&tdata->update_lock);
-
-	/* Check whether the time interval has elapsed */
-	if (!tdata->valid || time_after(jiffies, tdata->last_updated + HZ)) {
-		rdmsr_on_cpu(tdata->cpu, tdata->status_reg, &eax, &edx);
-		/*
-		 * Ignore the valid bit. In all observed cases the register
-		 * value is either low or zero if the valid bit is 0.
-		 * Return it instead of reporting an error which doesn't
-		 * really help at all.
-		 */
-		tdata->temp = tdata->tjmax - ((eax >> 16) & 0x7f) * 1000;
-		tdata->valid = 1;
-		tdata->last_updated = jiffies;
-	}
-
-	mutex_unlock(&tdata->update_lock);
-	return sprintf(buf, "%d\n", tdata->temp);
-}
-
-static inline int get_cpu_temp(unsigned int cpu)
-{
-	u32 eax, edx;
-	struct platform_data *pdata = dev_get_drvdata(_dev);
-	struct temp_data *tdata = NULL;
-
-	if (cpu == 0)
-		tdata = pdata->core_data[CORE0_TEMP];
-	else
-		tdata = pdata->core_data[CORE1_TEMP];
-
-	mutex_lock(&tdata->update_lock);
-
-	/* Check whether the time interval has elapsed */
-	if (!tdata->valid || time_after(jiffies, tdata->last_updated + HZ)) {
-		rdmsr_on_cpu(tdata->cpu, tdata->status_reg, &eax, &edx);
-		/*
-		 * Ignore the valid bit. In all observed cases the register
-		 * value is either low or zero if the valid bit is 0.
-		 * Return it instead of reporting an error which doesn't
-		 * really help at all.
-		 */
-		tdata->temp = tdata->tjmax - ((eax >> 16) & 0x7f) * 1000;
-		tdata->valid = 1;
-		tdata->last_updated = jiffies;
-	}
-
-	mutex_unlock(&tdata->update_lock);
-	return tdata->temp / 1000;
+	return sprintf(buf, "%d\n", get_cpu_temp());
 }
 
 #define ATTR_RW(_name) \
@@ -262,6 +234,7 @@ static ssize_t cpu_dvfs_max_temp_show(struct kobject *kobj, struct kobj_attribut
 	sprintf(buf, "%s[cpu_temp]\t%d °C\n",buf, cpu_temp);
 	sprintf(buf, "%s[peak_temp]\t%u °C\n",buf, cpu_dvfs_peak_temp);
 	sprintf(buf, "%s[user_max_temp]\t%u °C\n",buf, user_cpu_dvfs_max_temp);
+	sprintf(buf, "%s[cal_max_temp]\t%u °C\n",buf, cpu_dvfs_max_temp);
 	sprintf(buf, "%s[tjmax]\t\t%d °C\n",buf, (int)CPU_DVFS_TJMAX);
 	sprintf(buf, "%s[dvfs_avoid_shutdown_temp]\t%d °C\n",buf, (int)CPU_DVFS_AVOID_SHUTDOWN_TEMP);
 	sprintf(buf, "%s[dvfs_shutdown_temp]\t%d °C\n",buf, (int)CPU_DVFS_SHUTDOWN_TEMP);
@@ -272,11 +245,11 @@ static ssize_t cpu_dvfs_max_temp_show(struct kobject *kobj, struct kobj_attribut
 
 static ssize_t cpu_dvfs_max_temp_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
 {
-	unsigned int tmp;
+	unsigned int tmp = 0;
 
 	if (sscanf(buf, "%u", &tmp)) {
-		if (tmp < CPU_DVFS_RANGE_TEMP_MIN || tmp > CPU_DVFS_RANGE_TEMP_MAX) {
-			pr_warn("%s: CPU DVFS: out of range %d - %d\n", __func__ , (int)CPU_DVFS_RANGE_TEMP_MIN , (int)CPU_DVFS_RANGE_TEMP_MAX);
+		if (tmp < CPU_DVFS_RANGE_TEMP_MIN || tmp > CPU_DVFS_TJMAX) {
+			pr_err("%s: CPU DVFS: out of range %d - %d\n", __func__ , (int)CPU_DVFS_RANGE_TEMP_MIN , (int)CPU_DVFS_TJMAX);
 			return -EINVAL;
 		}
 		user_cpu_dvfs_max_temp = tmp;
@@ -284,7 +257,7 @@ static ssize_t cpu_dvfs_max_temp_store(struct kobject *kobj, struct kobj_attribu
 		return count;
 	}
 
-	pr_warn("%s: CPU DVFS: invalid input\n", __func__);
+	pr_err("%s: CPU DVFS: invalid input\n", __func__);
 	return -EINVAL;
 }
 ATTR_RW(cpu_dvfs_max_temp);
@@ -314,28 +287,23 @@ static inline void set_cpu_dvfs_limit(unsigned int freq)
 	if (policy) {
 		cpufreq_cpu_put(policy);
 	} else {
-		pr_err("%s: failed for policy0\n", __func__);
+		pr_warn("%s: CPU DVFS: policy0 is not ready!\n", __func__);
 		return;
 	}
 
+	policy->min = cpu_min_freq;
 	policy->max = freq;
 	cpu_dvfs_limit = freq;
-
-	if (sanitize) {
-		msleep(500);
-		sanitize = false;
-	}
 }
 
 inline void sanitize_cpu_dvfs(bool sanitize)
 {
-	if (sanitize) {
-		cpu_dvfs_max_temp -= CPU_DVFS_STEP_DOWN_TEMP;
-		sanitize = true;
-	} else {
+	if (!sanitize) {
 		cpu_dvfs_max_temp = user_cpu_dvfs_max_temp;
-		set_cpu_dvfs_limit(cpu_max_freq);
 		cpu_dvfs_peak_temp = 0;
+		set_cpu_dvfs_limit(cpu_max_freq);
+	} else {
+		cpu_dvfs_max_temp -= CPU_DVFS_STEP_DOWN_TEMP;
 	}
 
 	cpu_dvfs_min_temp = (cpu_dvfs_max_temp - CPU_DVFS_MARGIN_TEMP);
@@ -343,7 +311,8 @@ inline void sanitize_cpu_dvfs(bool sanitize)
 
 static inline int cpu_dvfs_check_thread(void *null)
 {
-	static unsigned int freq, prev_temp;
+	unsigned int freq = 0;
+	static unsigned int prev_temp = 0;
 
 	while (!kthread_should_stop()) {
 		if (!cpu_max_freq) {
@@ -355,31 +324,32 @@ static inline int cpu_dvfs_check_thread(void *null)
 	}
 
 	sanitize_cpu_dvfs(false);
-	freq = cpu_dvfs_limit;
-	pr_info("%s: CPU DVFS: thread started successfully.\n", __func__);
+	cpu_dvfs_limit = cpu_max_freq;
+	pr_info("%s: CPU DVFS: kthread started successfully.\n", __func__);
 
 	while (!kthread_should_stop()) {
 
-		cpu_temp = get_cpu_temp(0);
-
-		/* sanity check */
-		/* maybe core0 sensor is broken, use the other one */
-		if ((cpu_temp < 0) || (cpu_temp > CPU_DVFS_SHUTDOWN_TEMP))
-			cpu_temp = get_cpu_temp(1);
+		cpu_temp = get_cpu_temp();
 
 		if (cpu_temp == prev_temp) {
 			msleep(cpu_dvfs_sleep_time);
 			continue;
 		}
 
-		if (cpu_temp > cpu_dvfs_peak_temp)
+		if (cpu_temp > cpu_dvfs_peak_temp) {
 			cpu_dvfs_peak_temp = cpu_temp;
+#if CPU_DVFS_DEBUG
+			pr_info("%s: CPU DVFS: peak_temp: %d C\n", __func__, cpu_dvfs_peak_temp);
+#endif
+		}
 
 		if (cpu_temp >= CPU_DVFS_SHUTDOWN_TEMP) {
+			pr_err("%s: CPU DVFS: CPU_DVFS_SHUTDOWN_TEMP %u C reached! - CURR_TEMP: %d C! - cal cpu_dvfs_max_temp: %u C - cpu_dvfs_limit: %u KHz\n", 
+					__func__ , CPU_DVFS_SHUTDOWN_TEMP, cpu_temp, cpu_dvfs_max_temp, cpu_dvfs_limit);
+			sanitize_cpu_dvfs(true);
 			freq = FREQ_STEP_0;
 			set_cpu_dvfs_limit(freq);
-			pr_err("%s: CPU DVFS: CPU_DVFS_SHUTDOWN_TEMP %u C reached! - TEMP: %d C! - cpu_dvfs_max_temp: %u C - cpu_dvfs_limit: %u KHz - shutting down ...\n", 
-					__func__ , CPU_DVFS_SHUTDOWN_TEMP, cpu_temp, cpu_dvfs_max_temp, cpu_dvfs_limit);
+			pr_err("%s: CPU DVFS: shutting down ...\n", __func__);
 			mutex_lock(&poweroff_lock);
 			/*
 			 * Queue a backup emergency shutdown in the event of
@@ -388,16 +358,14 @@ static inline int cpu_dvfs_check_thread(void *null)
 			thermal_emergency_poweroff();
 			orderly_poweroff(true);
 			mutex_unlock(&poweroff_lock);
-			kthread_stop(cpu_dvfs_thread);
-			do_exit(0);
 			break;
 		}
 
 		if (cpu_temp >= CPU_DVFS_AVOID_SHUTDOWN_TEMP) {
-			freq = FREQ_STEP_0;
-			pr_warn("%s: CPU DVFS: CPU_DVFS_AVOID_SHUTDOWN_TEMP %u C reached! - TEMP: %d C! - cpu_dvfs_max_temp: %u C - cpu_dvfs_limit: %u KHz\n", 
-					__func__ , CPU_DVFS_AVOID_SHUTDOWN_TEMP, cpu_temp, cpu_dvfs_max_temp, cpu_dvfs_limit);
+			pr_warn("%s: CPU DVFS: CPU_DVFS_AVOID_SHUTDOWN_TEMP %u C reached! - CURR_TEMP: %d C! - cal cpu_dvfs_max_temp: %u C, calibrating to: %u C ... - cpu_dvfs_limit: %u KHz\n", 
+					__func__ , CPU_DVFS_AVOID_SHUTDOWN_TEMP, cpu_temp, cpu_dvfs_max_temp, (cpu_dvfs_max_temp - CPU_DVFS_STEP_DOWN_TEMP), cpu_dvfs_limit);
 			sanitize_cpu_dvfs(true);
+			freq = FREQ_STEP_0;
 
 		} else if (cpu_temp >= cpu_dvfs_max_temp) {
 			if (cpu_dvfs_limit == FREQ_STEP_2)
@@ -983,27 +951,6 @@ static int __init coretemp_init(void)
 	if (!x86_match_cpu(coretemp_ids))
 		return -ENODEV;
 
-	mutex_init(&poweroff_lock);
-
-	coretemp_kobject = kobject_create_and_add("coretemp", kernel_kobj);
-
-	if (!coretemp_kobject)
-		pr_err("[coretemp] Failed to create kobjects\n");
-
-	err = sysfs_create_group(coretemp_kobject, &coretemp_attr_group);
-	if (err) {
-		pr_err("[coretemp] Failed to register sysfs\n");
-		kobject_put(coretemp_kobject);
-	}
-
-	cpu_dvfs_thread = kthread_run(cpu_dvfs_check_thread, NULL, "cpu_dvfsd");
-	if (IS_ERR(cpu_dvfs_thread)) {
-		pr_err("%s: CPU DVFS: failed to create and start kthread.\n", __func__);
-		goto outdrv;
-	}
-	set_cpus_allowed_ptr(cpu_dvfs_thread, cpu_all_mask);
-	set_user_nice(cpu_dvfs_thread, MIN_NICE);
-
 	max_packages = topology_max_packages();
 	pkg_devices = kzalloc(max_packages * sizeof(struct platform_device *),
 			      GFP_KERNEL);
@@ -1019,28 +966,49 @@ static int __init coretemp_init(void)
 	if (err < 0)
 		goto outdrv;
 	coretemp_hp_online = err;
+
+	mutex_init(&poweroff_lock);
+
+	coretemp_kobject = kobject_create_and_add("coretemp", kernel_kobj);
+
+	if (!coretemp_kobject)
+		pr_err("%s: CPU DVFS: Failed to create kobjects\n", __func__);
+
+	err = sysfs_create_group(coretemp_kobject, &coretemp_attr_group);
+	if (err) {
+		pr_err("%s: CPU DVFS: Failed to register sysfs\n", __func__);
+		kobject_put(coretemp_kobject);
+	}
+
+	cpu_dvfs_thread = kthread_run(cpu_dvfs_check_thread, NULL, "cpu_dvfsd");
+	if (IS_ERR(cpu_dvfs_thread)) {
+		pr_err("%s: CPU DVFS: failed to create and start kthread.", __func__);
+		goto outdrv;
+	}
+
+	set_cpus_allowed_ptr(cpu_dvfs_thread, cpu_all_mask);
+	set_user_nice(cpu_dvfs_thread, MIN_NICE);
+
 	return 0;
 
 outdrv:
+	cpuhp_remove_state(coretemp_hp_online);
 	platform_driver_unregister(&coretemp_driver);
 	kfree(pkg_devices);
 	mutex_destroy(&poweroff_lock);
 	return err;
 }
+module_init(coretemp_init)
 
 static void __exit coretemp_exit(void)
 {
-	pr_info("%s: exit.\n", __func__);
 	cpuhp_remove_state(coretemp_hp_online);
 	platform_driver_unregister(&coretemp_driver);
 	kfree(pkg_devices);
-	kthread_stop(cpu_dvfs_thread);
-	do_exit(0);
+	mutex_destroy(&poweroff_lock);
 }
-
-module_init(coretemp_init)
 module_exit(coretemp_exit)
 
 MODULE_AUTHOR("Rudolf Marek <r.marek@assembler.cz>");
 MODULE_DESCRIPTION("Intel Core temperature monitor");
-MODULE_LICENSE("GPL v2");
+MODULE_LICENSE("GPL");
