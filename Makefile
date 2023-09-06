@@ -368,17 +368,16 @@ HOST_LFS_CFLAGS := $(shell getconf LFS_CFLAGS 2>/dev/null)
 HOST_LFS_LDFLAGS := $(shell getconf LFS_LDFLAGS 2>/dev/null)
 HOST_LFS_LIBS := $(shell getconf LFS_LIBS 2>/dev/null)
 
+# CPU Flags
+CPUFLAGS   := -march=core2 -mcpu=core2 -mtune=core2
+
 HOSTCC       = gcc
 HOSTCXX      = g++
 HOSTCFLAGS   := -Wall -Wmissing-prototypes -Wstrict-prototypes -O3 \
-		-fomit-frame-pointer -fno-strict-aliasing -std=gnu89 $(HOST_LFS_CFLAGS)
-HOSTCXXFLAGS := -O3 -fomit-frame-pointer -fno-strict-aliasing $(HOST_LFS_CFLAGS)
+		-fomit-frame-pointer -fno-strict-aliasing -std=gnu89 $(HOST_LFS_CFLAGS) $(CPUFLAGS) -pipe
+HOSTCXXFLAGS := -O3 -fomit-frame-pointer -fno-strict-aliasing $(HOST_LFS_CFLAGS) $(CPUFLAGS) -pipe
 HOSTLDFLAGS  := $(HOST_LFS_LDFLAGS)
 HOST_LOADLIBES := $(HOST_LFS_LIBS)
-
-# Host specific Flags
-HOSTCFLAGS   += -march=core2 -mcpu=core2 -mtune=core2 -mfpmath=sse -mssse3 -mhard-float -pipe
-HOSTCXXFLAGS += -march=core2 -mcpu=core2 -mtune=core2 -mfpmath=sse -mssse3 -mhard-float -pipe
 
 # Make variables (CC, etc...)
 AS		= $(CROSS_COMPILE)as
@@ -443,7 +442,6 @@ KBUILD_CFLAGS   += -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 CFLAGS_ABI	:= -march=core2 \
 		   -mcpu=core2 \
 		   -mtune=core2 \
-		   -mfpmath=sse \
 		   -msoft-float \
 		   -mno-80387 \
 		   -mno-fp-ret-in-387 \
