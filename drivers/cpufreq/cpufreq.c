@@ -719,24 +719,6 @@ static ssize_t store_##file_name					\
 store_one(scaling_min_freq, min);
 store_one(scaling_max_freq, max);
 
-inline void cpufreq_max_boost(unsigned int cpu, bool boost)
-{
-	struct cpufreq_policy *policy = NULL;
-
-	policy = cpufreq_cpu_get(cpu);
-	if (policy) {
-		cpufreq_cpu_put(policy);
-	} else {
-		pr_warn("%s: policy%u is not ready!\n", __func__, cpu);
-		return;
-	}
-
-	if (boost)
-		policy->min = policy->max;
-	else
-		policy->min = cpu_min_freq;
-}
-
 /**
  * show_cpuinfo_cur_freq - current CPU frequency as detected by hardware
  */
