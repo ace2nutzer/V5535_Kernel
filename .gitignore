@@ -125,3 +125,4 @@ all.config
 
 # Custom Files to ignore
 rejects
+build_sisfb.sh
