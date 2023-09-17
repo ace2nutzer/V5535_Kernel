@@ -65,8 +65,8 @@ static int sisfb_parm_mem = 0;
 static int sisfb_accel = -1;
 static int sisfb_ypan = -1;
 static int sisfb_max = -1;
-static int sisfb_userom = 1;
-static int sisfb_useoem = -1;
+static int sisfb_userom = 0;
+static int sisfb_useoem = 0;
 static int sisfb_mode_idx = -1;               /* Use a default mode if we are inside the kernel */
 static int sisfb_parm_rate = -1;
 static int sisfb_crt1off = 0;
@@ -109,6 +109,7 @@ static struct sisfb_chip_info {
 	{ SIS_650,    SIS_315_VGA, 1, HW_CURSOR_AREA_SIZE_315 * 4, SIS_CRT2_WENABLE_315, "SiS 650" },
 	{ SIS_330,    SIS_315_VGA, 1, HW_CURSOR_AREA_SIZE_315 * 4, SIS_CRT2_WENABLE_315, "SiS 330" },
 	{ SIS_660,    SIS_315_VGA, 1, HW_CURSOR_AREA_SIZE_315 * 4, SIS_CRT2_WENABLE_315, "SiS 660" },
+	{ SIS_671,    SIS_315_VGA, 1, HW_CURSOR_AREA_SIZE_315 * 4, SIS_CRT2_WENABLE_315, "SiS 671" },
 	{ XGI_20,     SIS_315_VGA, 1, HW_CURSOR_AREA_SIZE_315 * 4, SIS_CRT2_WENABLE_315, "XGI Z7" },
 	{ XGI_40,     SIS_315_VGA, 1, HW_CURSOR_AREA_SIZE_315 * 4, SIS_CRT2_WENABLE_315, "XGI V3XT/V5/V8" },
 };
@@ -127,8 +128,9 @@ static struct pci_device_id sisfb_pci_table[] = {
 	{ PCI_VENDOR_ID_SI, PCI_DEVICE_ID_SI_650_VGA, PCI_ANY_ID, PCI_ANY_ID, 0, 0, 7},
 	{ PCI_VENDOR_ID_SI, PCI_DEVICE_ID_SI_330,     PCI_ANY_ID, PCI_ANY_ID, 0, 0, 8},
 	{ PCI_VENDOR_ID_SI, PCI_DEVICE_ID_SI_660_VGA, PCI_ANY_ID, PCI_ANY_ID, 0, 0, 9},
-	{ PCI_VENDOR_ID_XGI,PCI_DEVICE_ID_XGI_20,     PCI_ANY_ID, PCI_ANY_ID, 0, 0,10},
-	{ PCI_VENDOR_ID_XGI,PCI_DEVICE_ID_XGI_40,     PCI_ANY_ID, PCI_ANY_ID, 0, 0,11},
+	{ PCI_VENDOR_ID_SI, PCI_DEVICE_ID_SI_671,     PCI_ANY_ID, PCI_ANY_ID, 0, 0, 10},
+	{ PCI_VENDOR_ID_XGI,PCI_DEVICE_ID_XGI_20,     PCI_ANY_ID, PCI_ANY_ID, 0, 0, 11},
+	{ PCI_VENDOR_ID_XGI,PCI_DEVICE_ID_XGI_40,     PCI_ANY_ID, PCI_ANY_ID, 0, 0, 12},
 #endif
 	{ 0 }
 };
@@ -206,9 +208,6 @@ static const struct _sisbios_mode {
 /*40*/	{"800x480x16",   {0x7a,0x7a}, 0x0000, 0x0000,  800,  480, 16, 1, 100, 30, MD_SIS300|MD_SIS315},
 	{"800x480x24",   {0x76,0x76}, 0x0000, 0x0000,  800,  480, 32, 1, 100, 30, MD_SIS300|MD_SIS315},
 	{"800x480x32",   {0x76,0x76}, 0x0000, 0x0000,  800,  480, 32, 1, 100, 30, MD_SIS300|MD_SIS315},
-#define DEFAULT_MODE		43 /* index for 800x600x8 */
-#define DEFAULT_LCDMODE		43 /* index for 800x600x8 */
-#define DEFAULT_TVMODE		43 /* index for 800x600x8 */
 	{"800x600x8",    {0x30,0x30}, 0x0103, 0x0103,  800,  600,  8, 2, 100, 37, MD_SIS300|MD_SIS315},
 	{"800x600x16",   {0x47,0x47}, 0x0114, 0x0114,  800,  600, 16, 2, 100, 37, MD_SIS300|MD_SIS315},
 	{"800x600x24",   {0x63,0x63}, 0x013b, 0x0115,  800,  600, 32, 2, 100, 37, MD_SIS300|MD_SIS315},
@@ -262,6 +261,9 @@ static const struct _sisbios_mode {
 	{"1280x800x8",   {0x14,0x14}, 0x0000, 0x0000, 1280,  800,  8, 1, 160, 50,           MD_SIS315},
 	{"1280x800x16",  {0x15,0x15}, 0x0000, 0x0000, 1280,  800, 16, 1, 160, 50,           MD_SIS315},
 	{"1280x800x24",  {0x16,0x16}, 0x0000, 0x0000, 1280,  800, 32, 1, 160, 50,           MD_SIS315},
+#define DEFAULT_MODE		94 /* index for 1280x800x32 */
+#define DEFAULT_LCDMODE		94 /* index for 1280x800x32 */
+#define DEFAULT_TVMODE		94 /* index for 1280x800x32 */
 	{"1280x800x32",  {0x16,0x16}, 0x0000, 0x0000, 1280,  800, 32, 1, 160, 50,           MD_SIS315},
 	{"1280x854x8",   {0x14,0x14}, 0x0000, 0x0000, 1280,  854,  8, 1, 160, 53,           MD_SIS315},
 	{"1280x854x16",  {0x15,0x15}, 0x0000, 0x0000, 1280,  854, 16, 1, 160, 53,           MD_SIS315},

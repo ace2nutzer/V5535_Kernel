@@ -85,6 +85,9 @@
 #ifndef PCI_DEVICE_ID_SI_761
 #define PCI_DEVICE_ID_SI_761		0x0761
 #endif
+#ifndef PCI_DEVICE_ID_SI_671
+#define PCI_DEVICE_ID_SI_671		0x6351
+#endif
 
 #ifndef PCI_VENDOR_ID_XGI
 #define PCI_VENDOR_ID_XGI		0x18ca

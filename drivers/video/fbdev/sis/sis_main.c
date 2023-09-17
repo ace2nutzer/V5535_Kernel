@@ -75,8 +75,8 @@ sisfb_setdefaultparms(void)
 	sisfb_accel		= -1;
 	sisfb_ypan		= -1;
 	sisfb_max		= -1;
-	sisfb_userom		= -1;
-	sisfb_useoem		= -1;
+	sisfb_userom		= 0;
+	sisfb_useoem		= 0;
 	sisfb_mode_idx		= -1;
 	sisfb_parm_rate		= -1;
 	sisfb_crt1off		= 0;
@@ -1850,7 +1850,8 @@ sisfb_get_fix(struct fb_fix_screeninfo *fix, int con, struct fb_info *info)
 		fix->accel = FB_ACCEL_SIS_GLAMOUR;
 	} else if((ivideo->chip == SIS_330) ||
 		  (ivideo->chip == SIS_760) ||
-		  (ivideo->chip == SIS_761)) {
+		  (ivideo->chip == SIS_761) ||
+		  (ivideo->chip == SIS_671)) {
 		fix->accel = FB_ACCEL_SIS_XABRE;
 	} else if(ivideo->chip == XGI_20) {
 		fix->accel = FB_ACCEL_XGI_VOLARI_Z;
@@ -1902,7 +1903,8 @@ static struct pci_dev *sisfb_get_northbridge(int basechipid)
 		PCI_DEVICE_ID_SI_741,
 		PCI_DEVICE_ID_SI_660,
 		PCI_DEVICE_ID_SI_760,
-		PCI_DEVICE_ID_SI_761
+		PCI_DEVICE_ID_SI_761,
+		PCI_DEVICE_ID_SI_671
 	};
 
 	switch(basechipid) {
@@ -1998,6 +2000,14 @@ static int sisfb_get_dram_size(struct sis_video_info *ivideo)
 				ivideo->LFBsize = (64 << 20);
 			}
 			ivideo->video_size += ivideo->LFBsize;
+		}
+		break;
+	case SIS_671:
+		reg = SiS_GetReg(SISCR, 0x79);
+		reg = (reg & 0xf0) >> 4;
+		if(reg)	{
+			ivideo->video_size = (1 << reg) << 20;
+			ivideo->UMAsize = ivideo->video_size;
 		}
 		break;
 	case SIS_340:
@@ -2670,7 +2680,7 @@ static void sisfb_get_VB_type(struct sis_video_info *ivideo)
 			   ivideo->vbflags |= VB_301C;	/* Deprecated */
 			   ivideo->vbflags2 |= VB2_301C;
 			   printk(KERN_INFO "%s SiS301C(P4) %s\n", stdstr, bridgestr);
-#if 0
+#if 1
 			   ivideo->vbflags |= VB_302ELV;	/* Deprecated */
 			   ivideo->vbflags2 |= VB2_302ELV;
 			   printk(KERN_INFO "%s SiS302ELV %s\n", stdstr, bridgestr);
@@ -5967,6 +5977,10 @@ static int sisfb_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 			ivideo->chip = SIS_761;
 			strcpy(ivideo->myid, "SiS 761");
 			break;
+		case PCI_DEVICE_ID_SI_671:
+			ivideo->chip = SIS_671;
+			strcpy(ivideo->myid, "SiS 671");
+			break;
 #endif
 		default:
 			break;
@@ -6022,7 +6036,7 @@ static int sisfb_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 #endif
 
 #ifdef CONFIG_FB_SIS_315
-	if((ivideo->chip == SIS_760) && (ivideo->nbridge)) {
+	if((ivideo->chip >= SIS_760 && ivideo->chip <= SIS_761) && (ivideo->nbridge)) {
 		ivideo->lpcdev = pci_get_slot(ivideo->nbridge->bus, (2 << 3));
 	}
 #endif
@@ -6566,8 +6580,8 @@ static int		pdc1 = -1;
 static int		noaccel = -1;
 static int		noypan  = -1;
 static int		nomax = -1;
-static int		userom = -1;
-static int		useoem = -1;
+static int		userom = 0;
+static int		useoem = 0;
 static char		*tvstandard = NULL;
 static int		nocrt2rate = 0;
 static int		scalelcd = -1;
@@ -6669,7 +6683,7 @@ static void __exit sisfb_remove_module(void)
 module_init(sisfb_init_module);
 module_exit(sisfb_remove_module);
 
-MODULE_DESCRIPTION("SiS 300/540/630/730/315/55x/65x/661/74x/330/76x/34x, XGI V3XT/V5/V8/Z7 framebuffer device driver");
+MODULE_DESCRIPTION("SiS 300/540/630/730/315/55x/65x/661/74x/330/76x/671/34x, XGI V3XT/V5/V8/Z7 framebuffer device driver");
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Thomas Winischhofer <thomas@winischhofer.net>, Others");
 
