@@ -77,7 +77,7 @@ MODULE_PARM_DESC(tjmax, "TjMax value in degrees Celsius");
 /* custom CPU DVFS */
 static unsigned int user_cpu_dvfs_max_temp = 100;
 static unsigned int cpu_dvfs_max_temp = 0;
-static unsigned int cpu_dvfs_peak_temp = 0;
+static int cpu_dvfs_peak_temp = 0;
 static int cpu_temp = 0;
 static unsigned int cpu_dvfs_sleep_time = 6;	/* ms */
 static unsigned int cpu_dvfs_limit = 0;
@@ -193,36 +193,30 @@ static ssize_t show_ttarget(struct device *dev,
 	return sprintf(buf, "%d\n", pdata->core_data[attr->index]->ttarget);
 }
 
-static inline int get_cpu_temp(void)
+static inline int get_cpu_temp(int cpu)
 {
 	struct platform_data *pdata = dev_get_drvdata(_dev);
 	struct temp_data *tdata = NULL;
 	u32 eax = 0, edx = 0;
-	int core0_temp = 0, core1_temp = 0;
 
-	tdata = pdata->core_data[CORE0_TEMP];
+	if (cpu == 0)
+		tdata = pdata->core_data[CORE0_TEMP];
+	else
+		tdata = pdata->core_data[CORE1_TEMP];
+
 	mutex_lock(&tdata->update_lock);
 	rdmsr_on_cpu(tdata->cpu, tdata->status_reg, &eax, &edx);
 	tdata->temp = tdata->tjmax - ((eax >> 16) & 0x7f) * 1000;
 	tdata->valid = 1;
-	core0_temp = tdata->temp;
 	mutex_unlock(&tdata->update_lock);
 
-	tdata = pdata->core_data[CORE1_TEMP];
-	mutex_lock(&tdata->update_lock);
-	rdmsr_on_cpu(tdata->cpu, tdata->status_reg, &eax, &edx);
-	tdata->temp = tdata->tjmax - ((eax >> 16) & 0x7f) * 1000;
-	tdata->valid = 1;
-	core1_temp = tdata->temp;
-	mutex_unlock(&tdata->update_lock);
-
-	return max(core0_temp, core1_temp) / 1000;
+	return (tdata->temp / 1000);
 }
 
 static ssize_t show_temp(struct device *dev,
 			struct device_attribute *devattr, char *buf)
 {
-	return sprintf(buf, "%d\n", get_cpu_temp());
+	return sprintf(buf, "%d\n", cpu_temp);
 }
 
 #define ATTR_RW(_name) \
@@ -232,7 +226,7 @@ static ssize_t show_temp(struct device *dev,
 static ssize_t cpu_dvfs_max_temp_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
 	sprintf(buf, "%s[cpu_temp]\t%d °C\n",buf, cpu_temp);
-	sprintf(buf, "%s[peak_temp]\t%u °C\n",buf, cpu_dvfs_peak_temp);
+	sprintf(buf, "%s[peak_temp]\t%d °C\n",buf, cpu_dvfs_peak_temp);
 	sprintf(buf, "%s[user_max_temp]\t%u °C\n",buf, user_cpu_dvfs_max_temp);
 	sprintf(buf, "%s[cal_max_temp]\t%u °C\n",buf, cpu_dvfs_max_temp);
 	sprintf(buf, "%s[tjmax]\t\t%d °C\n",buf, (int)CPU_DVFS_TJMAX);
@@ -312,7 +306,7 @@ inline void sanitize_cpu_dvfs(bool sanitize)
 static inline int cpu_dvfs_check_thread(void *null)
 {
 	unsigned int freq = 0;
-	static unsigned int prev_temp = 0;
+	static int prev_temp = 0;
 
 	while (!kthread_should_stop()) {
 		if (!cpu_max_freq) {
@@ -329,7 +323,7 @@ static inline int cpu_dvfs_check_thread(void *null)
 
 	while (!kthread_should_stop()) {
 
-		cpu_temp = get_cpu_temp();
+		cpu_temp = max(get_cpu_temp(0), get_cpu_temp(1));
 
 		if (cpu_temp == prev_temp) {
 			msleep(cpu_dvfs_sleep_time);
