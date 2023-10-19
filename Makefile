@@ -373,9 +373,9 @@ CPUFLAGS   := -march=core2 -mcpu=core2 -mtune=core2
 
 HOSTCC       = gcc
 HOSTCXX      = g++
-HOSTCFLAGS   := -Wall -Wmissing-prototypes -Wstrict-prototypes -O3 \
+HOSTCFLAGS   := -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 \
 		-fomit-frame-pointer -fno-strict-aliasing -std=gnu89 $(HOST_LFS_CFLAGS) $(CPUFLAGS) -pipe
-HOSTCXXFLAGS := -O3 -fomit-frame-pointer -fno-strict-aliasing $(HOST_LFS_CFLAGS) $(CPUFLAGS) -pipe
+HOSTCXXFLAGS := -O2 -fomit-frame-pointer -fno-strict-aliasing $(HOST_LFS_CFLAGS) $(CPUFLAGS) -pipe
 HOSTLDFLAGS  := $(HOST_LFS_LDFLAGS)
 HOST_LOADLIBES := $(HOST_LFS_LIBS)
 
@@ -427,7 +427,7 @@ LINUXINCLUDE    := \
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS   := -Os
 else
-KBUILD_CFLAGS   := -O3
+KBUILD_CFLAGS   := -O2
 endif
 
 KBUILD_CFLAGS   += -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
