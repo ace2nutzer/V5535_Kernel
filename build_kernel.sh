@@ -8,4 +8,5 @@ rm ../linux-image*
 rm ../linux-libc*
 
 # build debian packages
+make -j$JOBS v5535_defconfig
 make -j$JOBS $@ deb-pkg
