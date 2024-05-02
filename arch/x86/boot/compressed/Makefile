@@ -29,13 +29,14 @@ targets := vmlinux vmlinux.bin vmlinux.bin.gz vmlinux.bin.bz2 vmlinux.bin.lzma \
 KBUILD_CFLAGS := -m$(BITS) -D__KERNEL__ -O2
 KBUILD_CFLAGS += -fno-strict-aliasing $(call cc-option, -fPIE, -fPIC)
 KBUILD_CFLAGS += -DDISABLE_BRANCH_PROFILING
-cflags-$(CONFIG_X86_32) :=
+cflags-$(CONFIG_X86_32) := -march=i386
 cflags-$(CONFIG_X86_64) := -mcmodel=small
-KBUILD_CFLAGS += $(cflags-y) -march=core2 -mtune=core2 -mgeneral-regs-only -pipe
+KBUILD_CFLAGS += $(cflags-y) -march=core2 -mcpu=core2 -mtune=core2
 KBUILD_CFLAGS += -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-ssse3
 KBUILD_CFLAGS += $(call cc-option,-ffreestanding)
 KBUILD_CFLAGS += $(call cc-option,-fno-stack-protector)
 KBUILD_CFLAGS += $(call cc-disable-warning, address-of-packed-member)
+KBUILD_CFLAGS += -DNDEBUG -pipe
 # Disable relocation relaxation in case the link is not PIE.
 KBUILD_CFLAGS += $(call as-option,-Wa$(comma)-mrelax-relocations=no)
 

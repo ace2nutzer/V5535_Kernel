@@ -368,14 +368,12 @@ HOST_LFS_CFLAGS := $(shell getconf LFS_CFLAGS 2>/dev/null)
 HOST_LFS_LDFLAGS := $(shell getconf LFS_LDFLAGS 2>/dev/null)
 HOST_LFS_LIBS := $(shell getconf LFS_LIBS 2>/dev/null)
 
-# CPU Flags
-CPUFLAGS   := -march=core2 -mcpu=core2 -mtune=core2
-
 HOSTCC       = gcc
 HOSTCXX      = g++
-HOSTCFLAGS   := -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 \
-		-fomit-frame-pointer -fno-strict-aliasing -std=gnu89 $(HOST_LFS_CFLAGS) $(CPUFLAGS) -pipe
-HOSTCXXFLAGS := -O2 -fomit-frame-pointer -fno-strict-aliasing $(HOST_LFS_CFLAGS) $(CPUFLAGS) -pipe
+HOSTCFLAGS   := -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -ftree-vectorize \
+		-march=core2 -mcpu=core2 -mtune=core2 -mfpmath=sse -mhard-float \
+		-fomit-frame-pointer -std=gnu89 $(HOST_LFS_CFLAGS) -DNDEBUG -pipe
+HOSTCXXFLAGS := -O2 $(HOST_LFS_CFLAGS)
 HOSTLDFLAGS  := $(HOST_LFS_LDFLAGS)
 HOST_LOADLIBES := $(HOST_LFS_LIBS)
 
@@ -430,31 +428,17 @@ else
 KBUILD_CFLAGS   := -O2
 endif
 
+KBUILD_AFLAGS   := -D__ASSEMBLY__
 KBUILD_CFLAGS   += -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common -fshort-wchar \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
 		   -std=gnu89 \
+		   -march=core2 -mcpu=core2 -mtune=core2 \
+		   -msoft-float -mgeneral-regs-only \
 		   -DNDEBUG \
 		   -pipe
 
-# Target specific Flags
-CFLAGS_ABI	:= -march=core2 \
-		   -mcpu=core2 \
-		   -mtune=core2 \
-		   -msoft-float \
-		   -mno-80387 \
-		   -mno-fp-ret-in-387 \
-		   -mgeneral-regs-only \
-		   -mno-mmx \
-		   -mno-sse \
-		   -mno-sse2 \
-		   -mno-sse3 \
-		   -mno-ssse3
-
-KBUILD_CFLAGS   += $(CFLAGS_ABI)
-
-KBUILD_AFLAGS   := -D__ASSEMBLY__ $(CFLAGS_ABI)
 KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
@@ -862,6 +846,11 @@ KBUILD_CFLAGS	+= $(call cc-option,-fmerge-constants)
 
 # Make sure -fstack-check isn't enabled (like gentoo apparently did)
 KBUILD_CFLAGS  += $(call cc-option,-fno-stack-check,)
+
+ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
+# conserve stack if available
+KBUILD_CFLAGS   += $(call cc-option,-fconserve-stack)
+endif
 
 # disallow errors like 'EXPORT_GPL(foo);' with missing header
 KBUILD_CFLAGS   += $(call cc-option,-Werror=implicit-int)

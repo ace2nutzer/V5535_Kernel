@@ -31,12 +31,13 @@ endif
 CODE16GCC_CFLAGS := -m32 -Wa,$(srctree)/arch/x86/boot/code16gcc.h
 M16_CFLAGS	 := $(call cc-option, -m16, $(CODE16GCC_CFLAGS))
 
-REALMODE_CFLAGS	:= $(M16_CFLAGS) -O3 -D__KERNEL__ \
+REALMODE_CFLAGS	:= $(M16_CFLAGS) -O2 -D__KERNEL__ \
 		   -DDISABLE_BRANCH_PROFILING \
-		   -Wall -Wstrict-prototypes -march=core2 -mcpu=core2 -mtune=core2 -mgeneral-regs-only -mregparm=3 \
-		   -fno-strict-aliasing -fomit-frame-pointer -fno-pic -pipe \
-		   -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-ssse3 \
-		   $(call cc-option,-fcf-protection=none)
+		   -Wall -Wstrict-prototypes -march=core2 -mcpu=core2 -mtune=core2 -mregparm=3 \
+		   -fno-strict-aliasing -fomit-frame-pointer -fno-pic \
+		   $(call cc-option,-fcf-protection=none) \
+		   -msoft-float -mgeneral-regs-only \
+		   -DNDEBUG -pipe
 
 REALMODE_CFLAGS += $(call __cc-option, $(CC), $(REALMODE_CFLAGS), -ffreestanding)
 REALMODE_CFLAGS += $(call __cc-option, $(CC), $(REALMODE_CFLAGS), -fno-stack-protector)
@@ -61,7 +62,7 @@ endif
 #
 #    https://gcc.gnu.org/bugzilla/show_bug.cgi?id=53383
 #
-KBUILD_CFLAGS += -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-ssse3 -mgeneral-regs-only
+KBUILD_CFLAGS += -msoft-float -mgeneral-regs-only
 KBUILD_CFLAGS += $(call cc-option,-mno-avx,)
 
 # Intel CET isn't enabled in the kernel
@@ -134,7 +135,9 @@ else
         cflags-$(CONFIG_MPSC) += $(call cc-option,-march=nocona)
 
         cflags-$(CONFIG_MCORE2) += \
-                $(call cc-option,-march=core2,$(call cc-option,-mtune=core2))
+		$(call cc-option,-march=core2) \
+		$(call cc-option,-mcpu=core2) \
+		$(call cc-option,-mtune=core2)
 	cflags-$(CONFIG_MATOM) += $(call cc-option,-march=atom) \
 		$(call cc-option,-mtune=atom,$(call cc-option,-mtune=generic))
         cflags-$(CONFIG_GENERIC_CPU) += $(call cc-option,-mtune=generic)
