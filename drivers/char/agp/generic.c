@@ -45,6 +45,23 @@
 #include <asm/pgtable.h>
 #include "agp.h"
 
+
+/* Force custom AGP aperture over cmdline.
+*  Working values: 16 MB, 32 MB, 64 MB (0 = Bios default)
+*/
+static unsigned int agp_aperture = 0; /* MB */
+
+static int __init early_agp_aperture(char *p)
+{
+	pr_debug("%s(%s)\n", __func__, p);
+
+	if (kstrtouint(p, 0, &agp_aperture) < 0)
+		agp_aperture = 0;
+
+	return 0;
+}
+early_param("agp_aperture", early_agp_aperture);
+
 __u32 *agp_gatt_table;
 int agp_memory_reserved;
 
@@ -1352,12 +1369,20 @@ int agp3_generic_fetch_size(void)
 	values = A_SIZE_16(agp_bridge->driver->aperture_sizes);
 
 	for (i = 0; i < agp_bridge->driver->num_aperture_sizes; i++) {
-		if (temp_size == values[i].size_value) {
-			agp_bridge->previous_size =
-				agp_bridge->current_size = (void *) (values + i);
-
-			agp_bridge->aperture_size_idx = i;
-			return values[i].size;
+		if (agp_aperture) {
+			if (agp_aperture == values[i].size) {
+				agp_bridge->previous_size =
+					agp_bridge->current_size = (void *) (values + i);
+				agp_bridge->aperture_size_idx = i;
+				return values[i].size;
+			}
+		} else {
+			if (temp_size == values[i].size_value) {
+				agp_bridge->previous_size =
+					agp_bridge->current_size = (void *) (values + i);
+				agp_bridge->aperture_size_idx = i;
+				return values[i].size;
+			}
 		}
 	}
 	return 0;
