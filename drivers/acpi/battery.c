@@ -225,6 +225,9 @@ static int acpi_battery_get_property(struct power_supply *psy,
 {
 	int ret = 0;
 	struct acpi_battery *battery = to_acpi_battery(psy);
+	static int max_design_cap = 0;
+	static int full_charge_cap = 0;
+	static int cap_now = 0;
 
 	if (acpi_battery_present(battery)) {
 		/* run battery update only if it is present */
@@ -281,6 +284,17 @@ static int acpi_battery_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_ENERGY_FULL:
 		if (battery->full_charge_capacity == ACPI_BATTERY_VALUE_UNKNOWN)
 			ret = -ENODEV;
+
+		if (full_charge_cap) {
+			val->intval = full_charge_cap;
+			break;
+		}
+
+		if (!max_design_cap)
+			max_design_cap = battery->design_capacity * 2;
+
+		if (battery->full_charge_capacity > max_design_cap)
+			val->intval = battery->design_capacity * 1000;
 		else
 			val->intval = battery->full_charge_capacity * 1000;
 		break;
@@ -288,8 +302,21 @@ static int acpi_battery_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_ENERGY_NOW:
 		if (battery->capacity_now == ACPI_BATTERY_VALUE_UNKNOWN)
 			ret = -ENODEV;
-		else
+
+		if (!max_design_cap)
+			max_design_cap = battery->design_capacity * 2;
+
+		if (battery->capacity_now > max_design_cap) {
+			if (cap_now) {
+				val->intval = cap_now;
+				full_charge_cap = cap_now;
+			} else {
+				val->intval = battery->design_capacity * 1000;
+			}
+		} else {
 			val->intval = battery->capacity_now * 1000;
+			cap_now = val->intval;
+		}
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
 		if (battery->capacity_now && battery->full_charge_capacity)
