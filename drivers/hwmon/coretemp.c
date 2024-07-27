@@ -76,7 +76,7 @@ MODULE_PARM_DESC(tjmax, "TjMax value in degrees Celsius");
 
 /* custom CPU DVFS */
 #define MCELSIUS			(1000)
-static unsigned int user_cpu_dvfs_max_temp = 100 * MCELSIUS;
+static unsigned int user_cpu_dvfs_max_temp = 80 * MCELSIUS;
 static unsigned int cpu_dvfs_max_temp = 0;
 static int cpu_dvfs_peak_temp = 0;
 static int cpu_temp = 0;
