@@ -1116,7 +1116,6 @@ SiSInitPCIetc(struct SiS_Private *SiS_Pr)
    case SIS_760:
    case SIS_761:
    case SIS_340:
-   case SIS_671:
    case XGI_40:
       /* See above */
       SiS_SetRegOR(SiS_Pr->SiS_P3c4,0x20,0xa1);
@@ -1126,7 +1125,7 @@ SiSInitPCIetc(struct SiS_Private *SiS_Pr)
        *  - Enable 3D command parser (0x08)
        *  - Enable 3D (0x02)
        */
-      SiS_SetRegOR(SiS_Pr->SiS_P3c4,0x1E,0x5A);
+      SiS_SetRegOR(SiS_Pr->SiS_P3c4,0x1E,0xDA);
       break;
    case XGI_20:
    case SIS_550:
@@ -1197,7 +1196,6 @@ SiSSetLVDSetc(struct SiS_Private *SiS_Pr)
    case SIS_760:
    case SIS_761:
    case SIS_340:
-   case SIS_671:
    case XGI_20:
    case XGI_40:
 	temp = (SiS_GetReg(SiS_Pr->SiS_P3d4,0x38) & 0xe0) >> 5;

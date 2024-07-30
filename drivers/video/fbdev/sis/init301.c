@@ -6552,22 +6552,22 @@ SiS_SetGroup2_Tail(struct SiS_Private *SiS_Pr, unsigned short ModeNo)
      }
 #if 0
      /* 651+301C, for 1280x768 - do I really need that? */
-     if((SiS_Pr->PanelXRes == 1280) && (SiS_Pr->PanelYRes == 768)) {
+     if((SiS_Pr->SiS_PanelXRes == 1280) && (SiS_Pr->SiS_PanelYRes == 768)) {
         if(SiS_Pr->SiS_VBInfo & SetSimuScanMode) {
 	   if(((SiS_Pr->SiS_HDE == 640) && (SiS_Pr->SiS_VDE == 480)) ||
 	      ((SiS_Pr->SiS_HDE == 320) && (SiS_Pr->SiS_VDE == 240))) {
-	      SiS_SetReg(SiS_Pr->SiS_Part2Port,0x01,0x2b);
-	      SiS_SetReg(SiS_Pr->SiS_Part2Port,0x02,0x13);
-	      SiS_SetReg(SiS_Pr->SiS_Part2Port,0x04,0xe5);
-	      SiS_SetReg(SiS_Pr->SiS_Part2Port,0x05,0x08);
-	      SiS_SetReg(SiS_Pr->SiS_Part2Port,0x06,0xe2);
-	      SiS_SetReg(SiS_Pr->SiS_Part2Port,0x1c,0x21);
-	      SiS_SetReg(SiS_Pr->SiS_Part2Port,0x1d,0x45);
-	      SiS_SetReg(SiS_Pr->SiS_Part2Port,0x1f,0x0b);
-	      SiS_SetReg(SiS_Pr->SiS_Part2Port,0x20,0x00);
-	      SiS_SetReg(SiS_Pr->SiS_Part2Port,0x21,0xa9);
-	      SiS_SetReg(SiS_Pr->SiS_Part2Port,0x23,0x0b);
-	      SiS_SetReg(SiS_Pr->SiS_Part2Port,0x25,0x04);
+	      SiS_SetReg(SiS_Part2Port,0x01,0x2b);
+	      SiS_SetReg(SiS_Part2Port,0x02,0x13);
+	      SiS_SetReg(SiS_Part2Port,0x04,0xe5);
+	      SiS_SetReg(SiS_Part2Port,0x05,0x08);
+	      SiS_SetReg(SiS_Part2Port,0x06,0xe2);
+	      SiS_SetReg(SiS_Part2Port,0x1c,0x21);
+	      SiS_SetReg(SiS_Part2Port,0x1d,0x45);
+	      SiS_SetReg(SiS_Part2Port,0x1f,0x0b);
+	      SiS_SetReg(SiS_Part2Port,0x20,0x00);
+	      SiS_SetReg(SiS_Part2Port,0x21,0xa9);
+	      SiS_SetReg(SiS_Part2Port,0x23,0x0b);
+	      SiS_SetReg(SiS_Part2Port,0x25,0x04);
 	   }
 	}
      }
@@ -8969,7 +8969,7 @@ SiS_InitDDCRegs(struct SiS_Private *SiS_Pr, unsigned int VBFlags, int VGAEngine,
 
      cr32 = SiS_GetReg(SiS_Pr->SiS_P3d4,0x32);
 
-#if 1
+#if 0
      if(VBFlags2 & VB2_SISBRIDGE) {
 	if(myadaptnum == 0) {
 	   if(!(cr32 & 0x20)) {
@@ -9246,8 +9246,10 @@ SiS_HandleDDC(struct SiS_Private *SiS_Pr, unsigned int VBFlags, int VGAEngine,
       }
    }
    if((sr1f) || (!cr17)) {
-      for(result = 0; result < 10; result++)
-         SiS_WaitRetrace1(SiS_Pr);
+      SiS_WaitRetrace1(SiS_Pr);
+      SiS_WaitRetrace1(SiS_Pr);
+      SiS_WaitRetrace1(SiS_Pr);
+      SiS_WaitRetrace1(SiS_Pr);
    }
 
    if(DDCdatatype == 0) {
