@@ -1145,7 +1145,8 @@ SiS_GetVBInfo(struct SiS_Private *SiS_Pr, unsigned short ModeNo,
       SiS_SetChrontelGPIO(SiS_Pr, SiS_Pr->SiS_VBInfo);
    }
 #endif
-#ifdef DEBUG
+
+#if 0
    printk(KERN_DEBUG "sisfb: (init301: VBInfo= 0x%04x, SetFlag=0x%04x)\n",
       SiS_Pr->SiS_VBInfo, SiS_Pr->SiS_SetFlag);
 #endif
@@ -2133,8 +2134,10 @@ SiS_GetLCDResInfo(struct SiS_Private *SiS_Pr, unsigned short ModeNo, unsigned sh
      SiS_Pr->SiS_SetFlag |= LCDVESATiming;
   }
 
+#if 0
   printk(KERN_DEBUG "sisfb: (LCDInfo=0x%04x LCDResInfo=0x%02x LCDTypeInfo=0x%02x)\n",
 	SiS_Pr->SiS_LCDInfo, SiS_Pr->SiS_LCDResInfo, SiS_Pr->SiS_LCDTypeInfo);
+#endif
 }
 
 /*********************************************/

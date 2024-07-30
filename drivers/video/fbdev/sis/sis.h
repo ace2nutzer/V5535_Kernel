@@ -39,9 +39,9 @@
 #define SIS_NEW_CONFIG_COMPAT
 #endif	/* CONFIG_COMPAT */
 
-#define DEBUG
+#undef SISFBDEBUG
 
-#ifdef DEBUG
+#ifdef SISFBDEBUG
 #define DPRINTK(fmt, args...) printk(KERN_DEBUG "%s: " fmt, __func__ , ## args)
 #define TWDEBUG(x) printk(KERN_INFO x "\n");
 #else

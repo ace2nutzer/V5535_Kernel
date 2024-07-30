@@ -3392,7 +3392,7 @@ sis_int_malloc(struct sis_video_info *ivideo, struct sis_memreq *req)
 		req->offset = poh->offset;
 		req->size = poh->size;
 		DPRINTK("sisfb: Video RAM allocation succeeded: 0x%lx\n",
-			(long unsigned int)(poh->offset + ivideo->video_vbase));
+			(poh->offset + ivideo->video_vbase));
 	}
 }
 
@@ -5750,15 +5750,15 @@ static int sisfb_post_xgi(struct pci_dev *pdev)
 		}
 	}
 
-#ifdef DEBUG
+#if 0
 	printk(KERN_DEBUG "-----------------\n");
 	for(i = 0; i < 0xff; i++) {
 		reg = SiS_GetReg(SISCR, i);
-		printk(KERN_DEBUG "CR%02x(%lx) = 0x%02x\n", i, SISCR, reg);
+		printk(KERN_DEBUG "CR%02x(%x) = 0x%02x\n", i, SISCR, reg);
 	}
 	for(i = 0; i < 0x40; i++) {
 		reg = SiS_GetReg(SISSR, i);
-		printk(KERN_DEBUG "SR%02x(%lx) = 0x%02x\n", i, SISSR, reg);
+		printk(KERN_DEBUG "SR%02x(%x) = 0x%02x\n", i, SISSR, reg);
 	}
 	printk(KERN_DEBUG "-----------------\n");
 #endif
