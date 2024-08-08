@@ -75,8 +75,8 @@ sisfb_setdefaultparms(void)
 	sisfb_accel		= -1;
 	sisfb_ypan		= -1;
 	sisfb_max		= -1;
-	sisfb_userom		= -1;
-	sisfb_useoem		= -1;
+	sisfb_userom		= 0;
+	sisfb_useoem		= 0;
 	sisfb_mode_idx		= -1;
 	sisfb_parm_rate		= -1;
 	sisfb_crt1off		= 0;
@@ -1850,7 +1850,8 @@ sisfb_get_fix(struct fb_fix_screeninfo *fix, int con, struct fb_info *info)
 		fix->accel = FB_ACCEL_SIS_GLAMOUR;
 	} else if((ivideo->chip == SIS_330) ||
 		  (ivideo->chip == SIS_760) ||
-		  (ivideo->chip == SIS_761)) {
+		  (ivideo->chip == SIS_761) ||
+		  (ivideo->chip == SIS_671)) {
 		fix->accel = FB_ACCEL_SIS_XABRE;
 	} else if(ivideo->chip == XGI_20) {
 		fix->accel = FB_ACCEL_XGI_VOLARI_Z;
@@ -1902,7 +1903,8 @@ static struct pci_dev *sisfb_get_northbridge(int basechipid)
 		PCI_DEVICE_ID_SI_741,
 		PCI_DEVICE_ID_SI_660,
 		PCI_DEVICE_ID_SI_760,
-		PCI_DEVICE_ID_SI_761
+		PCI_DEVICE_ID_SI_761,
+		PCI_DEVICE_ID_SI_671
 	};
 
 	switch(basechipid) {
@@ -1914,6 +1916,7 @@ static struct pci_dev *sisfb_get_northbridge(int basechipid)
 	case SIS_550:   nbridgeidx = 3; nbridgenum = 1; break;
 	case SIS_650:	nbridgeidx = 4; nbridgenum = 3; break;
 	case SIS_660:	nbridgeidx = 7; nbridgenum = 5; break;
+	case SIS_671:	nbridgeidx = 7; nbridgenum = 5; break;
 #endif
 	default:	return NULL;
 	}
@@ -1998,6 +2001,14 @@ static int sisfb_get_dram_size(struct sis_video_info *ivideo)
 				ivideo->LFBsize = (64 << 20);
 			}
 			ivideo->video_size += ivideo->LFBsize;
+		}
+		break;
+	case SIS_671:
+		reg = SiS_GetReg(SISCR, 0x79);
+		reg = (reg & 0xf0) >> 4;
+		if(reg)	{
+			ivideo->video_size = (1 << reg) << 20;
+			ivideo->UMAsize = ivideo->video_size;
 		}
 		break;
 	case SIS_340:
@@ -3382,7 +3393,7 @@ sis_int_malloc(struct sis_video_info *ivideo, struct sis_memreq *req)
 		req->offset = poh->offset;
 		req->size = poh->size;
 		DPRINTK("sisfb: Video RAM allocation succeeded: 0x%lx\n",
-			(poh->offset + ivideo->video_vbase));
+			(long unsigned int)(poh->offset + ivideo->video_vbase));
 	}
 }
 
@@ -5740,15 +5751,15 @@ static int sisfb_post_xgi(struct pci_dev *pdev)
 		}
 	}
 
-#if 0
+#ifdef DEBUG
 	printk(KERN_DEBUG "-----------------\n");
 	for(i = 0; i < 0xff; i++) {
 		reg = SiS_GetReg(SISCR, i);
-		printk(KERN_DEBUG "CR%02x(%x) = 0x%02x\n", i, SISCR, reg);
+		printk(KERN_DEBUG "CR%02x(%lx) = 0x%02x\n", i, SISCR, reg);
 	}
 	for(i = 0; i < 0x40; i++) {
 		reg = SiS_GetReg(SISSR, i);
-		printk(KERN_DEBUG "SR%02x(%x) = 0x%02x\n", i, SISSR, reg);
+		printk(KERN_DEBUG "SR%02x(%lx) = 0x%02x\n", i, SISSR, reg);
 	}
 	printk(KERN_DEBUG "-----------------\n");
 #endif
@@ -5966,6 +5977,10 @@ static int sisfb_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 		case PCI_DEVICE_ID_SI_761:
 			ivideo->chip = SIS_761;
 			strcpy(ivideo->myid, "SiS 761");
+			break;
+		case PCI_DEVICE_ID_SI_671:
+			ivideo->chip = SIS_671;
+			strcpy(ivideo->myid, "SiS 671");
 			break;
 #endif
 		default:
@@ -6559,15 +6574,15 @@ static int		vesa = -1;
 static unsigned int	rate = 0;
 static unsigned int	crt1off = 1;
 static unsigned int	mem = 0;
-static char		*forcecrt2type = NULL;
+static char		*forcecrt2type = "LCD";
 static int		forcecrt1 = -1;
 static int		pdc = -1;
 static int		pdc1 = -1;
 static int		noaccel = -1;
 static int		noypan  = -1;
 static int		nomax = -1;
-static int		userom = -1;
-static int		useoem = -1;
+static int		userom = 0;
+static int		useoem = 0;
 static char		*tvstandard = NULL;
 static int		nocrt2rate = 0;
 static int		scalelcd = -1;

@@ -82,6 +82,7 @@ typedef enum _SIS_CHIP_TYPE {
     SIS_760,
     SIS_761,
     SIS_762,
+    SIS_671,
     SIS_770,
     SIS_340 = 55,
     SIS_341,

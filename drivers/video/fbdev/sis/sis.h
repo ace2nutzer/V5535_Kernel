@@ -39,9 +39,9 @@
 #define SIS_NEW_CONFIG_COMPAT
 #endif	/* CONFIG_COMPAT */
 
-#undef SISFBDEBUG
+#define DEBUG
 
-#ifdef SISFBDEBUG
+#ifdef DEBUG
 #define DPRINTK(fmt, args...) printk(KERN_DEBUG "%s: " fmt, __func__ , ## args)
 #define TWDEBUG(x) printk(KERN_INFO x "\n");
 #else
@@ -84,6 +84,9 @@
 #endif
 #ifndef PCI_DEVICE_ID_SI_761
 #define PCI_DEVICE_ID_SI_761		0x0761
+#endif
+#ifndef PCI_DEVICE_ID_SI_671
+#define PCI_DEVICE_ID_SI_671		0x6351
 #endif
 
 #ifndef PCI_VENDOR_ID_XGI
