@@ -370,10 +370,14 @@ HOST_LFS_LIBS := $(shell getconf LFS_LIBS 2>/dev/null)
 
 HOSTCC       = gcc
 HOSTCXX      = g++
-HOSTCFLAGS   := -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -ftree-vectorize \
-		-march=core2 -mcpu=core2 -mtune=core2 -mfpmath=sse -mhard-float \
-		-fomit-frame-pointer -std=gnu89 $(HOST_LFS_CFLAGS) -DNDEBUG -pipe
-HOSTCXXFLAGS := -O2 $(HOST_LFS_CFLAGS)
+HOSTCFLAGS   := -march=native -mcpu=native -mtune=native \
+		-O2 -ftree-vectorize -fomit-frame-pointer -fno-strict-aliasing \
+		-Wall -Wmissing-prototypes -Wstrict-prototypes \
+		-Werror-implicit-function-declaration \
+		-std=gnu89 $(HOST_LFS_CFLAGS) -DNDEBUG -pipe
+HOSTCXXFLAGS := -march=native -mcpu=native -mtune=native -O2 -ftree-vectorize \
+		-fomit-frame-pointer -fno-strict-aliasing $(HOST_LFS_CFLAGS) \
+		-DNDEBUG -pipe
 HOSTLDFLAGS  := $(HOST_LFS_LDFLAGS)
 HOST_LOADLIBES := $(HOST_LFS_LIBS)
 
@@ -425,7 +429,7 @@ LINUXINCLUDE    := \
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS   := -Os
 else
-KBUILD_CFLAGS   := -O2
+KBUILD_CFLAGS   := -O2 -ftree-vectorize
 endif
 
 KBUILD_AFLAGS   := -D__ASSEMBLY__
@@ -434,7 +438,7 @@ KBUILD_CFLAGS   += -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
 		   -std=gnu89 \
-		   -march=core2 -mcpu=core2 -mtune=core2 \
+		   -march=native -mcpu=native -mtune=native \
 		   -msoft-float -mgeneral-regs-only \
 		   -DNDEBUG \
 		   -pipe
