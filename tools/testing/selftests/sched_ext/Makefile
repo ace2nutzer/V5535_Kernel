@@ -109,14 +109,14 @@ $(BPFOBJ): $(wildcard $(BPFDIR)/*.[ch] $(BPFDIR)/Makefile)			\
 	   | $(OBJ_DIR)/libbpf
 	$(Q)$(MAKE) $(submake_extras) -C $(BPFDIR) OUTPUT=$(OBJ_DIR)/libbpf/	\
 		    ARCH=$(ARCH) CC="$(CC)" CROSS_COMPILE=$(CROSS_COMPILE)	\
-		    EXTRA_CFLAGS='-g -O0 -fPIC'					\
+		    EXTRA_CFLAGS='-g -O2 -fPIC'					\
 		    DESTDIR=$(OUTPUT_DIR) prefix= all install_headers
 
 $(DEFAULT_BPFTOOL): $(wildcard $(BPFTOOLDIR)/*.[ch] $(BPFTOOLDIR)/Makefile)	\
 		    $(LIBBPF_OUTPUT) | $(HOST_OBJ_DIR)
 	$(Q)$(MAKE) $(submake_extras)  -C $(BPFTOOLDIR)				\
 		    ARCH= CROSS_COMPILE= CC=$(HOSTCC) LD=$(HOSTLD)		\
-		    EXTRA_CFLAGS='-g -O0'					\
+		    EXTRA_CFLAGS='-g -O2'					\
 		    OUTPUT=$(HOST_OBJ_DIR)/					\
 		    LIBBPF_OUTPUT=$(HOST_LIBBPF_OUTPUT)				\
 		    LIBBPF_DESTDIR=$(HOST_LIBBPF_DESTDIR)			\

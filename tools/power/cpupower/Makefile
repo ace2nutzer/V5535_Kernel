@@ -105,8 +105,8 @@ export CROSS CC AR STRIP RANLIB CFLAGS LDFLAGS LIB_OBJS
 # check if compiler option is supported
 cc-supports = ${shell if $(CC) ${1} -S -o /dev/null -x c /dev/null > /dev/null 2>&1; then echo "$(1)"; fi;}
 
-# use '-Os' optimization if available, else use -O2
-OPTIMIZATION := $(call cc-supports,-Os,-O2)
+# use '-O2' optimization if available, else use -O2
+OPTIMIZATION := $(call cc-supports,-O2,-O2)
 
 WARNINGS := -Wall -Wchar-subscripts -Wpointer-arith -Wsign-compare
 WARNINGS += $(call cc-supports,-Wno-pointer-sign)
@@ -176,7 +176,7 @@ export QUIET ECHO
 
 # if DEBUG is enabled, then we do not strip or optimize
 ifeq ($(strip $(DEBUG)),true)
-	override CFLAGS += -O1 -g -DDEBUG
+	override CFLAGS += -O1" -g -DDEBUG
 	STRIPCMD = /bin/true -Since_we_are_debugging
 else
 	override CFLAGS += $(OPTIMIZATION) -fomit-frame-pointer

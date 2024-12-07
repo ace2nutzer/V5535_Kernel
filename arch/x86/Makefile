@@ -47,10 +47,13 @@ endif
 
 # How to compile the 16-bit code.  Note we always compile for -march=i386;
 # that way we can complain to the user if the CPU is insufficient.
-REALMODE_CFLAGS	:= -std=gnu11 -m16 -g -Os -DDISABLE_BRANCH_PROFILING -D__DISABLE_EXPORTS \
-		   -Wall -Wstrict-prototypes -march=i386 -mregparm=3 \
+REALMODE_CFLAGS	:= -std=gnu11 -m16 -O2 -ftree-vectorize -DDISABLE_BRANCH_PROFILING -D__DISABLE_EXPORTS \
+		   -Wall -Wstrict-prototypes -mregparm=3 \
 		   -fno-strict-aliasing -fomit-frame-pointer -fno-pic \
-		   -mno-mmx -mno-sse $(call cc-option,-fcf-protection=none)
+		   $(call cc-option,-fcf-protection=none) \
+		   -march=native -mcpu=native -mtune=native \
+		   -msoft-float -mgeneral-regs-only \
+		   -DNDEBUG -pipe
 
 REALMODE_CFLAGS += -ffreestanding
 REALMODE_CFLAGS += -fno-stack-protector
@@ -94,7 +97,7 @@ ifdef CONFIG_CC_IS_GCC
 #  -mpreferred-stack-boundary=3 is not between 4 and 12
 #
 # can be triggered. Otherwise gcc doesn't complain.
-CC_FLAGS_FPU += -mhard-float
+CC_FLAGS_FPU += -mhard-float -mfpmath=sse
 CC_FLAGS_FPU += $(call cc-option,-msse -mpreferred-stack-boundary=3,-mpreferred-stack-boundary=4)
 endif
 

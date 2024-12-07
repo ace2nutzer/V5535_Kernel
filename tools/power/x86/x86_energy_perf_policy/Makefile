@@ -11,7 +11,7 @@ endif
 x86_energy_perf_policy : x86_energy_perf_policy.c
 override CFLAGS +=	-O2 -Wall -I../../../include
 override CFLAGS +=	-DMSRHEADER='"../../../../arch/x86/include/asm/msr-index.h"'
-override CFLAGS +=	-D_FORTIFY_SOURCE=2
+override CFLAGS +=	
 
 %: %.c
 	@mkdir -p $(BUILD_OUTPUT)

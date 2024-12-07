@@ -39,7 +39,7 @@ endif
 ifeq ($(DEBUG),1)
   CFLAGS += -O0
 else
-  CFLAGS += -O3
+  CFLAGS += -O2
 endif
 
 # Treat warnings as errors unless directed not to

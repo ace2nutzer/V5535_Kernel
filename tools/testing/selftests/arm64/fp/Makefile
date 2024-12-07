@@ -41,7 +41,7 @@ $(OUTPUT)/ssve-test: sve-test.S $(OUTPUT)/asm-utils.o
 $(OUTPUT)/vec-syscfg: vec-syscfg.c $(OUTPUT)/rdvl.o
 $(OUTPUT)/vlset: vlset.c
 $(OUTPUT)/za-fork: za-fork.c $(OUTPUT)/za-fork-asm.o
-	$(CC) -fno-asynchronous-unwind-tables -fno-ident -s -Os -nostdlib \
+	$(CC) -fno-asynchronous-unwind-tables -fno-ident -s -O2 -nostdlib \
 		-include ../../../../include/nolibc/nolibc.h -I../..\
 		-static -ffreestanding -Wall $^ -o $@
 $(OUTPUT)/za-ptrace: za-ptrace.c

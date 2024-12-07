@@ -437,7 +437,10 @@ HOSTRUSTC = rustc
 HOSTPKG_CONFIG	= pkg-config
 
 KBUILD_USERHOSTCFLAGS := -Wall -Wmissing-prototypes -Wstrict-prototypes \
-			 -O2 -fomit-frame-pointer -std=gnu11
+			 -march=native -mcpu=native -mtune=native \
+			 -O2 -ftree-vectorize -fomit-frame-pointer -std=gnu11 \
+			 -fno-strict-aliasing -Werror-implicit-function-declaration \
+			 -DNDEBUG -pipe
 KBUILD_USERCFLAGS  := $(KBUILD_USERHOSTCFLAGS) $(USERCFLAGS)
 KBUILD_USERLDFLAGS := $(USERLDFLAGS)
 
@@ -461,7 +464,10 @@ export rust_common_flags := --edition=2021 \
 
 KBUILD_HOSTCFLAGS   := $(KBUILD_USERHOSTCFLAGS) $(HOST_LFS_CFLAGS) \
 		       $(HOSTCFLAGS) -I $(srctree)/scripts/include
-KBUILD_HOSTCXXFLAGS := -Wall -O2 $(HOST_LFS_CFLAGS) $(HOSTCXXFLAGS) \
+KBUILD_HOSTCXXFLAGS := -march=native -mcpu=native -mtune=native \
+		       -Wall -O2 $(HOST_LFS_CFLAGS) $(HOSTCXXFLAGS) \
+		       -ftree-vectorize -fomit-frame-pointer \
+		       -fno-strict-aliasing -DNDEBUG -pipe \
 		       -I $(srctree)/scripts/include
 KBUILD_HOSTRUSTFLAGS := $(rust_common_flags) -O -Cstrip=debuginfo \
 			-Zallow-features= $(HOSTRUSTFLAGS)
@@ -545,6 +551,11 @@ LINUXINCLUDE    := \
 KBUILD_AFLAGS   := -D__ASSEMBLY__ -fno-PIE
 
 KBUILD_CFLAGS :=
+
+KBUILD_CFLAGS += -march=native -mcpu=native -mtune=native
+KBUILD_CFLAGS += -msoft-float -mgeneral-regs-only
+KBUILD_CFLAGS += -DNDEBUG -pipe
+KBUILD_CFLAGS += -Werror-implicit-function-declaration
 KBUILD_CFLAGS += -std=gnu11
 KBUILD_CFLAGS += -fshort-wchar
 KBUILD_CFLAGS += -funsigned-char
@@ -799,7 +810,7 @@ endif # need-config
 KBUILD_CFLAGS	+= -fno-delete-null-pointer-checks
 
 ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
-KBUILD_CFLAGS += -O2
+KBUILD_CFLAGS += -O2 -ftree-vectorize
 KBUILD_RUSTFLAGS += -Copt-level=2
 else ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS += -Os

@@ -137,14 +137,14 @@ $(BPFOBJ): $(wildcard $(BPFDIR)/*.[ch] $(BPFDIR)/Makefile)			\
 	   $(APIDIR)/linux/bpf.h						\
 	   | $(OBJ_DIR)/libbpf
 	$(Q)$(MAKE) $(submake_extras) -C $(BPFDIR) OUTPUT=$(OBJ_DIR)/libbpf/	\
-		    EXTRA_CFLAGS='-g -O0 -fPIC'					\
+		    EXTRA_CFLAGS='-g -O2 -fPIC'					\
 		    DESTDIR=$(OUTPUT_DIR) prefix= all install_headers
 
 $(DEFAULT_BPFTOOL): $(wildcard $(BPFTOOLDIR)/*.[ch] $(BPFTOOLDIR)/Makefile)	\
 		    $(HOST_BPFOBJ) | $(HOST_BUILD_DIR)/bpftool
 	$(Q)$(MAKE) $(submake_extras)  -C $(BPFTOOLDIR)				\
 		    ARCH= CROSS_COMPILE= CC=$(HOSTCC) LD=$(HOSTLD)		\
-		    EXTRA_CFLAGS='-g -O0'					\
+		    EXTRA_CFLAGS='-g -O2'					\
 		    OUTPUT=$(HOST_BUILD_DIR)/bpftool/				\
 		    LIBBPF_OUTPUT=$(HOST_BUILD_DIR)/libbpf/			\
 		    LIBBPF_DESTDIR=$(HOST_OUTPUT_DIR)/				\

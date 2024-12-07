@@ -31,7 +31,7 @@ CFLAGS := $(EXTRA_WARNINGS) $(EXTRA_CFLAGS)
 CFLAGS += -ggdb3 -Wall -Wextra -std=gnu11 -U_FORTIFY_SOURCE -fPIC
 
 ifeq ($(DEBUG),0)
-  CFLAGS += -O3
+  CFLAGS += -O2
 endif
 
 ifeq ($(DEBUG),0)
