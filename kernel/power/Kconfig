@@ -41,7 +41,7 @@ config HIBERNATION
 	select HIBERNATE_CALLBACKS
 	select CRC32
 	select CRYPTO
-	select CRYPTO_LZO
+	select CRYPTO_LZ4
 	help
 	  Enable the suspend to disk (STD) functionality, which is usually
 	  called "hibernation" in user interfaces.  STD checkpoints the
@@ -94,7 +94,7 @@ config HIBERNATION_SNAPSHOT_DEV
 
 choice
 	prompt "Default compressor"
-	default HIBERNATION_COMP_LZO
+	default HIBERNATION_COMP_LZ4
 	depends on HIBERNATION
 
 config HIBERNATION_COMP_LZO
