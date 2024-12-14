@@ -1,6 +1,6 @@
 #!/bin/bash
 
-JOBS=2
+N=$(nproc)
 
-make -j$JOBS clean
-make -j$JOBS distclean
+make -j $N clean
+make -j $N distclean

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-JOBS=2
+N=$(nproc)
 
 # delete old kernel packages
 rm ../linux-headers*
@@ -8,5 +8,5 @@ rm ../linux-image*
 rm ../linux-libc*
 
 # build debian packages
-make -j$JOBS v5535_defconfig
-make -j$JOBS $@ bindeb-pkg
+make -j $N v5535_defconfig
+make -j $N $@ bindeb-pkg
