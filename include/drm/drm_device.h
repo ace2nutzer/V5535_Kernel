@@ -5,7 +5,9 @@
 #include <linux/kref.h>
 #include <linux/mutex.h>
 #include <linux/idr.h>
-
+#ifdef CONFIG_DRM_LEGACY
+#include <drm/drm_legacy.h>
+#endif
 #include <drm/drm_mode_config.h>
 
 struct drm_driver;
@@ -154,6 +156,7 @@ struct drm_device {
 	 *
 	 * TODO: This lock used to be the BKL of the DRM subsystem. Move the
 	 *       lock into i915, which is the only remaining user.
+	 * Note: required for DRI1.
 	 */
 	struct mutex struct_mutex;
 
@@ -317,6 +320,72 @@ struct drm_device {
 	 * Root directory for debugfs files.
 	 */
 	struct dentry *debugfs_root;
+
+	/* Everything below here is for legacy driver, never use! */
+	/* private: */
+#if IS_ENABLED(CONFIG_DRM_LEGACY)
+	/* List of devices per driver for stealth attach cleanup */
+	struct list_head legacy_dev_list;
+
+#ifdef __alpha__
+	/** @hose: PCI hose, only used on ALPHA platforms. */
+	struct pci_controller *hose;
+#endif
+
+	/* AGP data */
+	struct drm_agp_head *agp;
+
+	/* Context handle management - linked list of context handles */
+	struct list_head ctxlist;
+
+	/* Context handle management - mutex for &ctxlist */
+	struct mutex ctxlist_mutex;
+
+	/* Context handle management */
+	struct idr ctx_idr;
+
+	/* Memory management - linked list of regions */
+	struct list_head maplist;
+
+	/* Memory management - user token hash table for maps */
+	struct drm_open_hash map_hash;
+
+	/* Context handle management - list of vmas (for debugging) */
+	struct list_head vmalist;
+
+	/* Optional pointer for DMA support */
+	struct drm_device_dma *dma;
+
+	/* Context swapping flag */
+	__volatile__ long context_flag;
+
+	/* Last current context */
+	int last_context;
+
+	/* Lock for &buf_use and a few other things. */
+	spinlock_t buf_lock;
+
+	/* Usage counter for buffers in use -- cannot alloc */
+	int buf_use;
+
+	/* Buffer allocation in progress */
+	atomic_t buf_alloc;
+
+	struct {
+		int context;
+		struct drm_hw_lock *lock;
+	} sigdata;
+
+	struct drm_local_map *agp_buffer_map;
+	unsigned int agp_buffer_token;
+
+	/* Scatter gather memory */
+	struct drm_sg_mem *sg;
+
+	/* IRQs */
+	bool irq_enabled;
+	int irq;
+#endif
 };
 
 #endif
