@@ -63,6 +63,15 @@ bool drm_dev_needs_global_mutex(struct drm_device *dev)
 	if (dev->driver->load || dev->driver->unload)
 		return true;
 
+	/*
+	 * Drivers with the lastclose callback assume that it's synchronized
+	 * against concurrent opens, which again needs the BKL. The proper fix
+	 * is to use the drm_client infrastructure with proper locking for each
+	 * client.
+	 */
+	if (dev->driver->lastclose)
+		return true;
+
 	return false;
 }
 
@@ -386,8 +395,14 @@ err_undo:
 }
 EXPORT_SYMBOL(drm_open);
 
-static void drm_lastclose(struct drm_device *dev)
+void drm_lastclose(struct drm_device * dev)
 {
+	drm_dbg_core(dev, "\n");
+
+	if (dev->driver->lastclose)
+		dev->driver->lastclose(dev);
+	drm_dbg_core(dev, "driver lastclose completed\n");
+
 	drm_client_dev_restore(dev);
 
 	if (dev_is_pci(dev->dev))
@@ -400,9 +415,9 @@ static void drm_lastclose(struct drm_device *dev)
  * @filp: file pointer.
  *
  * This function must be used by drivers as their &file_operations.release
- * method. It frees any resources associated with the open file. If this
- * is the last open file for the DRM device, it also restores the active
- * in-kernel DRM client.
+ * method. It frees any resources associated with the open file, and calls the
+ * &drm_driver.postclose driver callback. If this is the last open file for the
+ * DRM device also proceeds to call the &drm_driver.lastclose driver callback.
  *
  * RETURNS:
  * Always succeeds and returns 0.
@@ -471,8 +486,9 @@ void drm_file_update_pid(struct drm_file *filp)
  *
  * This function may be used by drivers as their &file_operations.release
  * method. It frees any resources associated with the open file prior to taking
- * the drm_global_mutex. If this is the last open file for the DRM device, it
- * then restores the active in-kernel DRM client.
+ * the drm_global_mutex, which then calls the &drm_driver.postclose driver
+ * callback. If this is the last open file for the DRM device also proceeds to
+ * call the &drm_driver.lastclose driver callback.
  *
  * RETURNS:
  * Always succeeds and returns 0.
