@@ -501,7 +501,15 @@ menuconfig DRM_LEGACY
 	  Unless you have strong reasons to go rogue, say "N".
 
 if DRM_LEGACY
-# leave here to list legacy drivers
+
+config DRM_SIS
+	tristate "SiS video cards"
+	depends on DRM && AGP
+	help
+	  Choose this option if you have a SiS 630 or compatible video
+	  chipset. If M is selected the module will be called sis. AGP
+	  support is required for this driver to work.
+
 endif # DRM_LEGACY
 
 config DRM_EXPORT_FOR_TESTS

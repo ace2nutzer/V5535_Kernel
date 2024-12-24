@@ -63,6 +63,17 @@ bool drm_dev_needs_global_mutex(struct drm_device *dev)
 	if (dev->driver->load || dev->driver->unload)
 		return true;
 
+#ifdef CONFIG_DRM_SIS
+	/*
+	 * Drivers with the lastclose callback assume that it's synchronized
+	 * against concurrent opens, which again needs the BKL. The proper fix
+	 * is to use the drm_client infrastructure with proper locking for each
+	 * client.
+	 */
+	if (dev->driver->lastclose)
+		return true;
+#endif
+
 	return false;
 }
 
@@ -386,8 +397,15 @@ err_undo:
 }
 EXPORT_SYMBOL(drm_open);
 
-static void drm_lastclose(struct drm_device *dev)
+void drm_lastclose(struct drm_device * dev)
 {
+#ifdef CONFIG_DRM_SIS
+	drm_dbg_core(dev, "\n");
+
+	if (dev->driver->lastclose)
+		dev->driver->lastclose(dev);
+	drm_dbg_core(dev, "driver lastclose completed\n");
+#endif
 	drm_client_dev_restore(dev);
 
 	if (dev_is_pci(dev->dev))
