@@ -75,6 +75,7 @@ static const struct file_operations sis_driver_fops = {
 	.poll = drm_poll,
 	.compat_ioctl = drm_compat_ioctl,
 	.llseek = noop_llseek,
+	.fop_flags = FOP_UNSIGNED_OFFSET,
 };
 
 static int sis_driver_open(struct drm_device *dev, struct drm_file *file)
