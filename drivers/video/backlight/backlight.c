@@ -229,6 +229,15 @@ static ssize_t brightness_show(struct device *dev,
 	return sprintf(buf, "%d\n", bd->props.brightness);
 }
 
+
+static ssize_t user_brightness_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct backlight_device *bd = to_backlight_device(dev);
+
+	return sprintf(buf, "%d\n", bd->props.brightness);
+}
+
 int backlight_device_set_brightness(struct backlight_device *bd,
 				    unsigned long brightness)
 {
@@ -252,7 +261,15 @@ int backlight_device_set_brightness(struct backlight_device *bd,
 }
 EXPORT_SYMBOL(backlight_device_set_brightness);
 
+/* fake interface */
 static ssize_t brightness_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	return count;
+}
+static DEVICE_ATTR_RW(brightness);
+
+static ssize_t user_brightness_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
 	int rc;
@@ -267,7 +284,7 @@ static ssize_t brightness_store(struct device *dev,
 
 	return rc ? rc : count;
 }
-static DEVICE_ATTR_RW(brightness);
+static DEVICE_ATTR_RW(user_brightness);
 
 static ssize_t type_show(struct device *dev, struct device_attribute *attr,
 		char *buf)
@@ -361,6 +378,7 @@ static void bl_device_release(struct device *dev)
 static struct attribute *bl_device_attrs[] = {
 	&dev_attr_bl_power.attr,
 	&dev_attr_brightness.attr,
+	&dev_attr_user_brightness.attr,
 	&dev_attr_actual_brightness.attr,
 	&dev_attr_max_brightness.attr,
 	&dev_attr_scale.attr,
