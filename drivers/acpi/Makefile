@@ -85,7 +85,7 @@ obj-$(CONFIG_ACPI_PCI_SLOT)	+= pci_slot.o
 obj-$(CONFIG_ACPI_PROCESSOR)	+= processor.o
 obj-$(CONFIG_ACPI)		+= container.o
 obj-$(CONFIG_ACPI_THERMAL_LIB)	+= thermal_lib.o
-obj-$(CONFIG_ACPI_THERMAL)	+= thermal.o
+obj-$(CONFIG_ACPI_THERMAL)	+= thermal.o processor_thermal.o
 obj-$(CONFIG_ACPI_PLATFORM_PROFILE) 	+= platform_profile.o
 obj-$(CONFIG_ACPI_NFIT)		+= nfit/
 obj-$(CONFIG_ACPI_NHLT)		+= nhlt.o
@@ -105,7 +105,7 @@ obj-$(CONFIG_ACPI_PPTT) 	+= pptt.o
 obj-$(CONFIG_ACPI_PFRUT)	+= pfr_update.o pfr_telemetry.o
 
 # processor has its own "processor." module_param namespace
-processor-y			:= processor_driver.o processor_thermal.o
+processor-y			:= processor_driver.o
 processor-$(CONFIG_ACPI_PROCESSOR_IDLE) += processor_idle.o
 processor-$(CONFIG_ACPI_CPU_FREQ_PSS)	+= processor_throttling.o
 processor-$(CONFIG_CPU_FREQ)	+= processor_perflib.o
