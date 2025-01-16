@@ -215,7 +215,6 @@ config ACPI_VIDEO
 	depends on BACKLIGHT_CLASS_DEVICE
 	depends on INPUT
 	depends on ACPI_WMI || !X86
-	select THERMAL
 	help
 	  This driver implements the ACPI Extensions For Display Adapters
 	  for integrated graphics devices on motherboard, as specified in
@@ -288,8 +287,6 @@ config ACPI_PROCESSOR
 	tristate "Processor"
 	depends on X86 || ARM64 || LOONGARCH || RISCV
 	select ACPI_PROCESSOR_IDLE
-	select ACPI_CPU_FREQ_PSS if X86 || LOONGARCH
-	select THERMAL
 	default y
 	help
 	  This driver adds support for the ACPI Processor package. It is required
@@ -331,6 +328,7 @@ config ACPI_THERMAL
 	depends on ACPI_PROCESSOR
 	select THERMAL
 	select ACPI_THERMAL_LIB
+	select ACPI_CPU_FREQ_PSS if X86 || LOONGARCH
 	default y
 	help
 	  This driver supports ACPI thermal zones.  Most mobile and

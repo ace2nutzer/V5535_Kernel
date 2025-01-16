@@ -171,9 +171,11 @@ static int __acpi_processor_start(struct acpi_device *device)
 
 	acpi_pss_perf_init(pr);
 
+#ifdef CONFIG_ACPI_THERMAL
 	result = acpi_processor_thermal_init(pr, device);
 	if (result)
 		goto err_power_exit;
+#endif
 
 	status = acpi_install_notify_handler(device->handle, ACPI_DEVICE_NOTIFY,
 					     acpi_processor_notify, device);
@@ -186,8 +188,10 @@ static int __acpi_processor_start(struct acpi_device *device)
 	return 0;
 
 err_thermal_exit:
+#ifdef CONFIG_ACPI_THERMAL
 	acpi_processor_thermal_exit(pr, device);
 err_power_exit:
+#endif
 	acpi_processor_power_exit(pr);
 	return result;
 }
@@ -210,7 +214,9 @@ static int acpi_processor_stop(struct device *dev)
 
 	acpi_cppc_processor_exit(pr);
 
+#ifdef CONFIG_ACPI_THERMAL
 	acpi_processor_thermal_exit(pr, device);
+#endif
 
 	return 0;
 }
@@ -223,11 +229,15 @@ static int acpi_processor_notifier(struct notifier_block *nb,
 	struct cpufreq_policy *policy = data;
 
 	if (event == CPUFREQ_CREATE_POLICY) {
+#ifdef CONFIG_ACPI_THERMAL
 		acpi_thermal_cpufreq_init(policy);
+#endif
 		acpi_processor_ppc_init(policy);
 	} else if (event == CPUFREQ_REMOVE_POLICY) {
 		acpi_processor_ppc_exit(policy);
+#ifdef CONFIG_ACPI_THERMAL
 		acpi_thermal_cpufreq_exit(policy);
+#endif
 	}
 
 	return 0;
