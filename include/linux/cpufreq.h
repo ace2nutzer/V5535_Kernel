@@ -1211,4 +1211,9 @@ static inline void cpufreq_register_em_with_opp(struct cpufreq_policy *policy)
 	dev_pm_opp_of_register_em(get_cpu_device(policy->cpu),
 				  policy->related_cpus);
 }
+
+extern void sanitize_cpu_dvfs(bool sanitize);
+extern unsigned int cpu_min_freq;
+extern unsigned int cpu_max_freq;
+
 #endif /* _LINUX_CPUFREQ_H */

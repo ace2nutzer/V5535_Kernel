@@ -31,6 +31,9 @@
 #include <linux/units.h>
 #include <trace/events/power.h>
 
+unsigned int cpu_min_freq = 0;
+unsigned int cpu_max_freq = 0;
+
 static LIST_HEAD(cpufreq_policy_list);
 
 /* Macros to iterate over CPU policies */
@@ -751,23 +754,41 @@ static ssize_t show_scaling_cur_freq(struct cpufreq_policy *policy, char *buf)
 /*
  * cpufreq_per_cpu_attr_write() / store_##file_name() - sysfs write access
  */
-#define store_one(file_name, object)			\
-static ssize_t store_##file_name					\
-(struct cpufreq_policy *policy, const char *buf, size_t count)		\
-{									\
-	unsigned long val;						\
-	int ret;							\
-									\
-	ret = kstrtoul(buf, 0, &val);					\
-	if (ret)							\
-		return ret;						\
-									\
-	ret = freq_qos_update_request(policy->object##_freq_req, val);\
-	return ret >= 0 ? count : ret;					\
+static ssize_t store_scaling_min_freq(struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	unsigned long val;
+	int ret;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret)
+		return ret;
+
+	ret = freq_qos_update_request(policy->min_freq_req, val);
+
+	cpu_min_freq = val;
+
+	sanitize_cpu_dvfs(false);
+
+	return ret >= 0 ? count : ret;
 }
 
-store_one(scaling_min_freq, min);
-store_one(scaling_max_freq, max);
+static ssize_t store_scaling_max_freq(struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	unsigned long val;
+	int ret;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret)
+		return ret;
+
+	ret = freq_qos_update_request(policy->max_freq_req, val);
+
+	cpu_max_freq = val;
+
+	sanitize_cpu_dvfs(false);
+
+	return ret >= 0 ? count : ret;
+}
 
 /*
  * show_cpuinfo_cur_freq - current CPU frequency as detected by hardware
@@ -1433,6 +1454,12 @@ static int cpufreq_online(unsigned int cpu)
 	cpumask_and(policy->cpus, policy->cpus, cpu_online_mask);
 
 	if (new_policy) {
+
+		if (!cpu_min_freq)
+			cpu_min_freq = policy->min;
+		if (!cpu_max_freq)
+			cpu_max_freq = policy->max;
+
 		for_each_cpu(j, policy->related_cpus) {
 			per_cpu(cpufreq_cpu_data, j) = policy;
 			add_cpu_dev_symlink(policy, j, get_cpu_device(j));
