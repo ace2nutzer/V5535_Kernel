@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/x86 6.12.9 Kernel Configuration
+# Linux/x86 6.12.14 Kernel Configuration
 #
 CONFIG_CC_VERSION_TEXT="gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0"
 CONFIG_CC_IS_GCC=y
@@ -2459,7 +2459,6 @@ CONFIG_SND_SEQ_HRTIMER_DEFAULT=y
 CONFIG_SND_SEQ_MIDI_EVENT=y
 CONFIG_SND_SEQ_MIDI=y
 # CONFIG_SND_SEQ_UMP is not set
-CONFIG_SND_SEQ_UMP_CLIENT=y
 CONFIG_SND_AC97_CODEC=y
 # CONFIG_SND_DRIVERS is not set
 CONFIG_SND_PCI=y
@@ -3355,7 +3354,6 @@ CONFIG_INTEL_IOMMU_PERF_EVENTS=y
 #
 # IRQ chip support
 #
-# CONFIG_LAN966X_OIC is not set
 # end of IRQ chip support
 
 # CONFIG_IPACK_BUS is not set
