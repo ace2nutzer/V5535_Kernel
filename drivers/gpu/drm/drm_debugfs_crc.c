@@ -278,7 +278,7 @@ static int crtc_crc_release(struct inode *inode, struct file *filep)
  * 1 frame field of 10 chars plus a number of CRC fields of 10 chars each, space
  * separated, with a newline at the end and null-terminated.
  */
-#define LINE_LEN(values_cnt)	(10 + 11 * values_cnt + 1 + 1)
+#define LINE_LEN(values_cnt)	(10 + 12 * values_cnt + 1 + 1)
 #define MAX_LINE_LEN		(LINE_LEN(DRM_MAX_CRC_NR))
 
 static ssize_t crtc_crc_read(struct file *filep, char __user *user_buf,
