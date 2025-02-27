@@ -438,9 +438,9 @@ HOSTPKG_CONFIG	= pkg-config
 
 KBUILD_USERHOSTCFLAGS := -Wall -Wmissing-prototypes -Wstrict-prototypes \
 			 -march=native -mcpu=native -mtune=native \
-			 -O2 -ftree-vectorize -fomit-frame-pointer -std=gnu11 \
+			 -O2 -fomit-frame-pointer -std=gnu11 \
 			 -fno-strict-aliasing -Werror-implicit-function-declaration \
-			 -DNDEBUG -pipe
+			 -Werror=incompatible-pointer-types -DNDEBUG -pipe
 KBUILD_USERCFLAGS  := $(KBUILD_USERHOSTCFLAGS) $(USERCFLAGS)
 KBUILD_USERLDFLAGS := $(USERLDFLAGS)
 
@@ -467,8 +467,8 @@ KBUILD_HOSTCFLAGS   := $(KBUILD_USERHOSTCFLAGS) $(HOST_LFS_CFLAGS) \
 		       $(HOSTCFLAGS) -I $(srctree)/scripts/include
 KBUILD_HOSTCXXFLAGS := -march=native -mcpu=native -mtune=native \
 		       -Wall -O2 $(HOST_LFS_CFLAGS) $(HOSTCXXFLAGS) \
-		       -ftree-vectorize -fomit-frame-pointer \
-		       -fno-strict-aliasing -DNDEBUG -pipe \
+		       -fomit-frame-pointer -fno-strict-aliasing \
+		       -DNDEBUG -pipe \
 		       -I $(srctree)/scripts/include
 KBUILD_HOSTRUSTFLAGS := $(rust_common_flags) -O -Cstrip=debuginfo \
 			-Zallow-features= $(HOSTRUSTFLAGS)
@@ -557,6 +557,7 @@ KBUILD_CFLAGS += -march=native -mcpu=native -mtune=native
 KBUILD_CFLAGS += -msoft-float -mgeneral-regs-only
 KBUILD_CFLAGS += -DNDEBUG -pipe
 KBUILD_CFLAGS += -Werror-implicit-function-declaration
+KBUILD_CFLAGS += -Werror=incompatible-pointer-types
 KBUILD_CFLAGS += -std=gnu11
 KBUILD_CFLAGS += -fshort-wchar
 KBUILD_CFLAGS += -funsigned-char
@@ -811,7 +812,7 @@ endif # need-config
 KBUILD_CFLAGS	+= -fno-delete-null-pointer-checks
 
 ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
-KBUILD_CFLAGS += -O2 -ftree-vectorize
+KBUILD_CFLAGS += -O2
 KBUILD_RUSTFLAGS += -Copt-level=2
 else ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS += -Os

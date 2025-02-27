@@ -25,14 +25,16 @@ targets := vmlinux vmlinux.bin vmlinux.bin.gz vmlinux.bin.bz2 vmlinux.bin.lzma \
 # avoid errors with '-march=i386', and future flags may depend on the target to
 # be valid.
 KBUILD_CFLAGS := -m$(BITS) -O2 $(CLANG_FLAGS)
-KBUILD_CFLAGS += -std=gnu11
+KBUILD_CFLAGS += -std=gnu11 -fomit-frame-pointer
 KBUILD_CFLAGS += -fno-strict-aliasing -fPIE
-KBUILD_CFLAGS += -Wundef
+KBUILD_CFLAGS += -Wundef -DNDEBUG -pipe
 KBUILD_CFLAGS += -DDISABLE_BRANCH_PROFILING
-cflags-$(CONFIG_X86_32) := -march=i386
-cflags-$(CONFIG_X86_64) := -mcmodel=small -mno-red-zone
+cflags-$(CONFIG_X86_32) := -march=native -mcpu=native -mtune=native
+cflags-$(CONFIG_X86_64) := -march=native -mcpu=native -mtune=native \
+			   -mcmodel=small -mno-red-zone
 KBUILD_CFLAGS += $(cflags-y)
 KBUILD_CFLAGS += -mno-mmx -mno-sse
+KBUILD_CFLAGS += -msoft-float -mgeneral-regs-only
 KBUILD_CFLAGS += -ffreestanding -fshort-wchar
 KBUILD_CFLAGS += -fno-stack-protector
 KBUILD_CFLAGS += $(call cc-disable-warning, address-of-packed-member)
