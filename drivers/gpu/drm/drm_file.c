@@ -63,7 +63,7 @@ bool drm_dev_needs_global_mutex(struct drm_device *dev)
 	if (dev->driver->load || dev->driver->unload)
 		return true;
 
-#ifdef CONFIG_DRM_SIS
+#if defined(CONFIG_DRM_SIS) || defined(CONFIG_DRM_SIS_MODULE)
 	/*
 	 * Drivers with the lastclose callback assume that it's synchronized
 	 * against concurrent opens, which again needs the BKL. The proper fix
@@ -399,7 +399,7 @@ EXPORT_SYMBOL(drm_open);
 
 void drm_lastclose(struct drm_device * dev)
 {
-#ifdef CONFIG_DRM_SIS
+#if defined(CONFIG_DRM_SIS) || defined(CONFIG_DRM_SIS_MODULE)
 	drm_dbg_core(dev, "\n");
 
 	if (dev->driver->lastclose)

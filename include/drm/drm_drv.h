@@ -228,7 +228,7 @@ struct drm_driver {
 	 */
 	void (*postclose) (struct drm_device *, struct drm_file *);
 
-#ifdef CONFIG_DRM_SIS
+#if defined(CONFIG_DRM_SIS) || defined(CONFIG_DRM_SIS_MODULE)
 	/**
 	 * @lastclose:
 	 *
