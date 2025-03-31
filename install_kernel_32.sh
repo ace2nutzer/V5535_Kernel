@@ -2,6 +2,7 @@
 
 KERNEL=/media/ace2nutzer/b8b4acea-417c-4c2c-a1de-059f6d035eb9/home/ace2nutzer/Kernel
 
+mkdir /tmp/kernel
 cp ../*.deb /tmp/kernel
 cd /tmp/kernel
 ar x linux-image*
@@ -18,4 +19,4 @@ ar x linux-libc*
 zstd -d < control.tar.zst | gzip > control.tar.gz
 zstd -d < data.tar.zst | gzip > data.tar.gz
 ar -m -c -a sdsd $KERNEL/linux-libc.deb debian-binary control.tar.gz data.tar.gz
-rm linux-libc* debian-binary control.tar.gz data.tar.gz control.tar.zst data.tar.zst
+rm -r /tmp/kernel
