@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# repack linux kernel debian packages with gzip compression
-# to be able to install this kernel on old distros like Lubuntu 12.04
+# Repack linux kernel debian packages with gzip compression.
+# This allows to install this kernel on old distros like Lubuntu 12.04.
 
-IN=$HOME
+IN=../
 OUT=$HOME/Downloads
 
 mkdir /tmp/kernel
-cp $HOME/*.deb /tmp/kernel
+cp $IN/*.deb /tmp/kernel
 cd /tmp/kernel
 LINUX_IMAGE=$(find linux-image*.deb)
 ar x $LINUX_IMAGE
