@@ -332,8 +332,8 @@ static ssize_t crtc_crc_read(struct file *filep, char __user *user_buf,
 		sprintf(buf, "XXXXXXXXXX");
 
 	for (i = 0; i < crc->values_cnt; i++)
-		sprintf(buf + 10 + i * 11, " 0x%08x", entry->crcs[i]);
-	sprintf(buf + 10 + crc->values_cnt * 11, "\n");
+		sprintf(buf + 10 + i * 10, " 0x%08x", entry->crcs[i]);
+	sprintf(buf + 10 + crc->values_cnt * 10, "\n");
 
 	if (copy_to_user(user_buf, buf, LINE_LEN(crc->values_cnt)))
 		return -EFAULT;
