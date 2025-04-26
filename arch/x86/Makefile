@@ -47,7 +47,7 @@ endif
 
 # How to compile the 16-bit code.  Note we always compile for -march=i386;
 # that way we can complain to the user if the CPU is insufficient.
-REALMODE_CFLAGS	:= -std=gnu11 -m16 -Os \
+REALMODE_CFLAGS	:= -std=gnu11 -m16 $(OPT_LVL) \
 		   -DDISABLE_BRANCH_PROFILING -D__DISABLE_EXPORTS \
 		   -Wall -Wstrict-prototypes -mregparm=3 \
 		   -fno-strict-aliasing -fomit-frame-pointer -fno-pic \
@@ -100,7 +100,7 @@ ifdef CONFIG_CC_IS_GCC
 #
 # can be triggered. Otherwise gcc doesn't complain.
 CC_FLAGS_FPU += -march=native -mcpu=native -mtune=native
-CC_FLAGS_FPU += -O2 -mhard-float -mfpmath=sse
+CC_FLAGS_FPU += $(OPT_LVL) -mhard-float -mfpmath=sse
 CC_FLAGS_FPU += $(call cc-option,-msse -mpreferred-stack-boundary=3,-mpreferred-stack-boundary=4)
 endif
 

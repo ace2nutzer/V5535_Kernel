@@ -38,7 +38,7 @@ $(obj)/%.so: $(obj)/%.so.dbg FORCE
 # Don't omit frame pointers for ease of userspace debugging, but do
 # optimize sibling calls.
 #
-CFL := $(PROFILING) -mcmodel=small -fPIC -O2 -fasynchronous-unwind-tables -m64 \
+CFL := $(PROFILING) -mcmodel=small -fPIC $(OPT_LVL) -fasynchronous-unwind-tables -m64 \
        $(filter -g%,$(KBUILD_CFLAGS)) -fno-stack-protector \
        -fno-omit-frame-pointer -foptimize-sibling-calls
 
