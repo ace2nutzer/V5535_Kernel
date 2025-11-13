@@ -48,8 +48,19 @@ MODULE_PARM_DESC(tjmax, "TjMax value in degrees Celsius");
 #define CORETEMP_NAME_LENGTH	28	/* String Length of attrs */
 
 /* custom CPU DVFS for Intel Core 2 Duo */
-#define MCELSIUS			(1000)
-static unsigned int user_cpu_dvfs_max_temp = 80 * MCELSIUS;
+#define CPU_DVFS_RANGE_TEMP_MIN		(45)
+#define CPU_DVFS_RANGE_TEMP_MAX		(90)
+#define CPU_DVFS_AVOID_SHUTDOWN_TEMP	(95)
+#define CPU_DVFS_SHUTDOWN_TEMP		(100)
+#define CPU_DVFS_MARGIN_TEMP		(10)
+#define CPU_DVFS_STEP_DOWN_TEMP		(5)
+#define CPU_DVFS_DEBUG			(0)
+
+#define FREQ_STEP_0		(1200000)
+#define FREQ_STEP_1		(1600000)
+#define FREQ_STEP_2		(2000000)
+
+static unsigned int user_cpu_dvfs_max_temp = 80;
 static unsigned int cpu_dvfs_max_temp = 0;
 static int cpu_dvfs_peak_temp = 0;
 static int cpu_temp = 0;
@@ -58,18 +69,7 @@ static unsigned int cpu_dvfs_limit = 0;
 static unsigned int cpu_dvfs_min_temp = 0;
 static struct task_struct *cpu_dvfs_thread = NULL;
 static inline int get_cpu_temp(int cpu);
-
-#define CPU_DVFS_RANGE_TEMP_MIN		(45 * MCELSIUS)
-#define CPU_DVFS_RANGE_TEMP_MAX		(90 * MCELSIUS)
-#define CPU_DVFS_AVOID_SHUTDOWN_TEMP	(95 * MCELSIUS)
-#define CPU_DVFS_SHUTDOWN_TEMP		(100 * MCELSIUS)
-#define CPU_DVFS_MARGIN_TEMP		(10 * MCELSIUS)
-#define CPU_DVFS_STEP_DOWN_TEMP		(5 * MCELSIUS)
-#define CPU_DVFS_DEBUG			(0)
-
-#define FREQ_STEP_0		(1200000)
-#define FREQ_STEP_1		(1600000)
-#define FREQ_STEP_2		(2000000)
+static int tjmax = 0;
 
 enum coretemp_attr_index {
 	ATTR_LABEL,
@@ -307,8 +307,10 @@ static int get_tjmax(struct temp_data *tdata, struct device *dev)
 	u32 val;
 
 	/* use static tjmax once it is set */
-	if (tdata->tjmax)
+	if (tdata->tjmax) {
+		tjmax = tdata->tjmax / 1000;
 		return tdata->tjmax;
+	}
 
 	/*
 	 * A new feature of current Intel(R) processors, the
@@ -487,13 +489,14 @@ static ssize_t cpu_dvfs_max_temp_show(struct kobject *kobj, struct kobj_attribut
 {
 	unsigned int offset = 0;
 
-	offset += sprintf(buf + offset, "[cpu0_temp]\t%d °C\n", (get_cpu_temp(0) / MCELSIUS));
-	offset += sprintf(buf + offset, "[cpu1_temp]\t%d °C\n", (get_cpu_temp(1) / MCELSIUS));
-	offset += sprintf(buf + offset, "[peak_temp]\t%d °C\n", (cpu_dvfs_peak_temp / MCELSIUS));
-	offset += sprintf(buf + offset, "[user_max_temp]\t%u °C\n", (user_cpu_dvfs_max_temp / MCELSIUS));
-	offset += sprintf(buf + offset, "[cal_max_temp]\t%u °C\n", (cpu_dvfs_max_temp / MCELSIUS));
-	offset += sprintf(buf + offset, "[dvfs_avoid_shutdown_temp]\t%d °C\n", ((int)CPU_DVFS_AVOID_SHUTDOWN_TEMP / MCELSIUS));
-	offset += sprintf(buf + offset, "[dvfs_shutdown_temp]\t%d °C\n", ((int)CPU_DVFS_SHUTDOWN_TEMP / MCELSIUS));
+	offset += sprintf(buf + offset, "[cpu0_temp]\t%d °C\n", get_cpu_temp(0));
+	offset += sprintf(buf + offset, "[cpu1_temp]\t%d °C\n", get_cpu_temp(1));
+	offset += sprintf(buf + offset, "[peak_temp]\t%d °C\n", cpu_dvfs_peak_temp);
+	offset += sprintf(buf + offset, "[user_max_temp]\t%u °C\n", user_cpu_dvfs_max_temp);
+	offset += sprintf(buf + offset, "[cal_max_temp]\t%u °C\n", cpu_dvfs_max_temp);
+	offset += sprintf(buf + offset, "[dvfs_avoid_shutdown_temp]\t%d °C\n", (int)CPU_DVFS_AVOID_SHUTDOWN_TEMP);
+	offset += sprintf(buf + offset, "[dvfs_shutdown_temp]\t%d °C\n", (int)CPU_DVFS_SHUTDOWN_TEMP);
+	offset += sprintf(buf + offset, "[tjmax]\t%d °C\n", tjmax);
 	offset += sprintf(buf + offset, "[cpu_max_freq]\t%u KHz\n", cpu_max_freq);
 	offset += sprintf(buf + offset, "[cpu_dvfs_limit]\t%u KHz\n", cpu_dvfs_limit);
 
@@ -505,11 +508,11 @@ static ssize_t cpu_dvfs_max_temp_store(struct kobject *kobj, struct kobj_attribu
 	unsigned int tmp = 0;
 
 	if (sscanf(buf, "%u", &tmp)) {
-		if ((tmp < CPU_DVFS_RANGE_TEMP_MIN / MCELSIUS) || (tmp > CPU_DVFS_RANGE_TEMP_MAX / MCELSIUS)) {
-			pr_err("%s: CPU DVFS: out of range %d - %d C\n", __func__, (int)CPU_DVFS_RANGE_TEMP_MIN / MCELSIUS, (int)CPU_DVFS_RANGE_TEMP_MAX / MCELSIUS);
+		if ((tmp < CPU_DVFS_RANGE_TEMP_MIN) || (tmp > CPU_DVFS_RANGE_TEMP_MAX)) {
+			pr_err("%s: CPU DVFS: out of range %d - %d C\n", __func__, (int)CPU_DVFS_RANGE_TEMP_MIN, (int)CPU_DVFS_RANGE_TEMP_MAX);
 			return -EINVAL;
 		}
-		user_cpu_dvfs_max_temp = tmp * MCELSIUS;
+		user_cpu_dvfs_max_temp = tmp;
 		sanitize_cpu_dvfs(false);
 		return count;
 	}
@@ -594,13 +597,13 @@ static inline int cpu_dvfs_check_thread(void *null)
 		if (cpu_temp > cpu_dvfs_peak_temp) {
 			cpu_dvfs_peak_temp = cpu_temp;
 #if CPU_DVFS_DEBUG
-			pr_info("%s: CPU DVFS: peak_temp: %d C\n", __func__, cpu_dvfs_peak_temp / MCELSIUS);
+			pr_info("%s: CPU DVFS: peak_temp: %d C\n", __func__, cpu_dvfs_peak_temp);
 #endif
 		}
 
 		if (cpu_temp >= CPU_DVFS_SHUTDOWN_TEMP) {
 			pr_err("%s: CPU DVFS: CPU_DVFS_SHUTDOWN_TEMP %u C reached! - CURR_TEMP: %d C! - cal cpu_dvfs_max_temp: %u C - cpu_dvfs_limit: %u KHz\n", 
-					__func__, CPU_DVFS_SHUTDOWN_TEMP / MCELSIUS, cpu_temp / MCELSIUS, cpu_dvfs_max_temp / MCELSIUS, cpu_dvfs_limit);
+					__func__, CPU_DVFS_SHUTDOWN_TEMP, cpu_temp, cpu_dvfs_max_temp, cpu_dvfs_limit);
 			sanitize_cpu_dvfs(true);
 			freq = FREQ_STEP_0;
 			set_cpu_dvfs_limit(freq);
@@ -612,7 +615,7 @@ static inline int cpu_dvfs_check_thread(void *null)
 
 		if (cpu_temp >= CPU_DVFS_AVOID_SHUTDOWN_TEMP) {
 			pr_warn("%s: CPU DVFS: CPU_DVFS_AVOID_SHUTDOWN_TEMP %u C reached! - CURR_TEMP: %d C! - cal cpu_dvfs_max_temp: %u C, calibrating to: %u C ... - cpu_dvfs_limit: %u KHz\n", 
-					__func__, CPU_DVFS_AVOID_SHUTDOWN_TEMP / MCELSIUS, cpu_temp / MCELSIUS, cpu_dvfs_max_temp / MCELSIUS, ((cpu_dvfs_max_temp / MCELSIUS) - (CPU_DVFS_STEP_DOWN_TEMP / MCELSIUS)), cpu_dvfs_limit);
+					__func__, CPU_DVFS_AVOID_SHUTDOWN_TEMP, cpu_temp, cpu_dvfs_max_temp, ((cpu_dvfs_max_temp) - (CPU_DVFS_STEP_DOWN_TEMP)), cpu_dvfs_limit);
 			sanitize_cpu_dvfs(true);
 			freq = FREQ_STEP_0;
 
@@ -744,6 +747,7 @@ static inline int get_cpu_temp(int cpu)
 	struct platform_data *pd;
 	struct temp_data *tdata;
 	u32 eax, edx;
+	int temp;
 
 	pd = platform_get_drvdata(pdev);
 	tdata = get_temp_data(pd, cpu);
@@ -751,11 +755,11 @@ static inline int get_cpu_temp(int cpu)
 	mutex_lock(&tdata->update_lock);
 
 	rdmsr_on_cpu(tdata->cpu, tdata->status_reg, &eax, &edx);
-	tdata->temp = tdata->tjmax - ((eax >> 16) & 0xff) * MCELSIUS;
+	temp = tjmax - ((eax >> 16) & 0xff);
 
 	mutex_unlock(&tdata->update_lock);
 
-	return (tdata->temp);
+	return temp;
 }
 
 static int create_core_data(struct platform_device *pdev, unsigned int cpu,
