@@ -783,8 +783,6 @@ static ssize_t store_scaling_min_freq(struct cpufreq_policy *policy, const char 
 
 	cpu_min_freq = val;
 
-	sanitize_cpu_dvfs(false);
-
 	return ret >= 0 ? count : ret;
 }
 
