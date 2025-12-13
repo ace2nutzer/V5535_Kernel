@@ -436,7 +436,7 @@ endif
 HOSTRUSTC = rustc
 HOSTPKG_CONFIG	= pkg-config
 
-OPT_LVL := -O3
+OPT_LVL := -O2
 export OPT_LVL
 
 KBUILD_USERHOSTCFLAGS := -Wall -Wmissing-prototypes -Wstrict-prototypes \
