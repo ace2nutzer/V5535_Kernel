@@ -977,7 +977,7 @@ CONFIG_EXECMEM=y
 # CONFIG_DAMON is not set
 # end of Data Access Monitoring
 
-CONFIG_DIRECT_RECLAIM_FILE_PAGES_ONLY=y
+# CONFIG_DIRECT_RECLAIM_FILE_PAGES_ONLY is not set
 # end of Memory Management options
 
 CONFIG_NET=y
