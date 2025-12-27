@@ -442,7 +442,7 @@ export OPT_LVL
 KBUILD_USERHOSTCFLAGS := -Wall -Wmissing-prototypes -Wstrict-prototypes \
 			 -march=native -mcpu=native -mtune=native \
 			 $(OPT_LVL) -fomit-frame-pointer -std=gnu11 \
-			 -fno-strict-aliasing -Werror-implicit-function-declaration \
+			 -Werror-implicit-function-declaration \
 			 -Werror=incompatible-pointer-types -DNDEBUG -pipe
 KBUILD_USERCFLAGS  := $(KBUILD_USERHOSTCFLAGS) $(USERCFLAGS)
 KBUILD_USERLDFLAGS := $(USERLDFLAGS)
@@ -473,7 +473,7 @@ KBUILD_HOSTCFLAGS   := $(KBUILD_USERHOSTCFLAGS) $(HOST_LFS_CFLAGS) \
 		       $(HOSTCFLAGS) -I $(srctree)/scripts/include
 KBUILD_HOSTCXXFLAGS := -march=native -mcpu=native -mtune=native \
 		       -Wall $(OPT_LVL) $(HOST_LFS_CFLAGS) $(HOSTCXXFLAGS) \
-		       -fomit-frame-pointer -fno-strict-aliasing \
+		       -fomit-frame-pointer \
 		       -DNDEBUG -pipe \
 		       -I $(srctree)/scripts/include
 KBUILD_HOSTRUSTFLAGS := $(rust_common_flags) -O -Cstrip=debuginfo \
