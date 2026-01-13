@@ -1470,10 +1470,8 @@ static int cpufreq_online(unsigned int cpu)
 
 	if (new_policy) {
 
-		if (!cpu_min_freq)
-			cpu_min_freq = policy->min;
-		if (!cpu_max_freq)
-			cpu_max_freq = policy->max;
+		cpu_min_freq = policy->min;
+		cpu_max_freq = policy->max;
 
 		for_each_cpu(j, policy->related_cpus) {
 			per_cpu(cpufreq_cpu_data, j) = policy;

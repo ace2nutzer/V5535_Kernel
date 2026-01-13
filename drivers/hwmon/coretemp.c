@@ -33,6 +33,7 @@
 #include <linux/delay.h>
 #include <linux/reboot.h>
 #include <linux/pm_qos.h>
+#include <linux/syscalls.h>
 
 #define DRVNAME	"coretemp"
 
@@ -47,11 +48,11 @@ MODULE_PARM_DESC(tjmax, "TjMax value in degrees Celsius");
 #define NUM_REAL_CORES		2	/* Number of Real cores per cpu */
 #define CORETEMP_NAME_LENGTH	28	/* String Length of attrs */
 
-/* custom CPU DVFS for Intel Core 2 Duo */
+/* custom CPU DVFS driver for Intel Core 2 Duo */
 #define CPU_DVFS_TJMAX			(100) /* shutdown temp */
 #define CPU_DVFS_AVOID_SHUTDOWN_TEMP	(CPU_DVFS_TJMAX - 5)
 #define CPU_DVFS_RANGE_MAX_TEMP		(CPU_DVFS_AVOID_SHUTDOWN_TEMP - 5)
-#define CPU_DVFS_MARGIN_TEMP		(10)
+#define CPU_DVFS_MARGIN_TEMP		(15)
 #define CPU_DVFS_STEP_DOWN_TEMP		(5)
 #define CPU_DVFS_DEBUG			(0)
 
@@ -60,7 +61,7 @@ MODULE_PARM_DESC(tjmax, "TjMax value in degrees Celsius");
 #define FREQ_STEP_2		(2000000)
 
 static int cpu_dvfs_max_temp_user = 80;
-static unsigned int cpu_dvfs_sleep_time_us = 40 * 1000; /* 40 ms */
+static unsigned int cpu_dvfs_sleep_time_us = 20 * 1000; /* 20 ms */
 static int cpu_dvfs_max_temp_cal = 0;
 static int cpu_dvfs_peak_temp = 0;
 static int cpu_temp = 0;
@@ -497,6 +498,7 @@ static ssize_t cpu_dvfs_max_temp_show(struct kobject *kobj, struct kobj_attribut
 	offset += sprintf(buf + offset, "[peak_temp]\t%d °C\n", cpu_dvfs_peak_temp);
 	offset += sprintf(buf + offset, "[max_temp_user]\t%d °C\n", cpu_dvfs_max_temp_user);
 	offset += sprintf(buf + offset, "[max_temp_cal]\t%d °C\n", cpu_dvfs_max_temp_cal);
+	offset += sprintf(buf + offset, "[cpu_dvfs_range_max_temp]\t%u °C\n", CPU_DVFS_RANGE_MAX_TEMP);
 	offset += sprintf(buf + offset, "[dvfs_avoid_shutdown_temp]\t%u °C\n", CPU_DVFS_AVOID_SHUTDOWN_TEMP);
 	offset += sprintf(buf + offset, "[dvfs_shutdown_temp]\t%u °C\n", CPU_DVFS_TJMAX);
 	offset += sprintf(buf + offset, "[tjmax_hw]\t%d °C\n", tjmax);
@@ -564,10 +566,12 @@ static void set_cpu_dvfs_limit(unsigned int freq)
 {
 	struct cpufreq_policy *policy;
 
-	if (freq > cpu_max_freq)
-		freq = cpu_max_freq;
+	if (freq > cpu_max_freq) {
+		cpu_dvfs_limit_freq = cpu_max_freq;
+		return;
+	}
 
-	if (cpu_dvfs_limit_freq == freq)
+	if (freq == cpu_dvfs_limit_freq)
 		return;
 
 	policy = cpufreq_cpu_get(0);
@@ -644,14 +648,14 @@ static int cpu_dvfs_kthread(void *null)
 		if (cpu_temp >= CPU_DVFS_TJMAX) {
 			pr_err("%s: CPU DVFS: CPU_DVFS_TJMAX: %u C reached! - CURR_TEMP: %d C! - cpu_dvfs_max_temp_cal: %d C - cpu_dvfs_limit_freq: %u KHz\n", 
 					__func__, CPU_DVFS_TJMAX, cpu_temp, cpu_dvfs_max_temp_cal, cpu_dvfs_limit_freq);
-			freq = FREQ_STEP_0;
-			set_cpu_dvfs_limit(freq);
-			pr_err("%s: CPU DVFS: Forcing Hardware protection shutdown ...\n", __func__);
-			orderly_poweroff(true);
+			pr_emerg("CPU DVFS: HARDWARE PROTECTION SHUTDOWN - CPU too hot.\n");
+			ksys_sync();
+			kernel_power_off();
 			/*
 			 * Worst of the worst case trigger emergency restart
 			 */
-			pr_emerg("%s: CPU DVFS: Forced Hardware protection shutdown failed. Trying emergency restart ...\n", __func__);
+			pr_emerg("CPU DVFS: HARDWARE PROTECTION SHUTDOWN FAILED. Trying emergency restart.\n");
+			emergency_sync();
 			emergency_restart();
 		}
 
@@ -662,22 +666,24 @@ static int cpu_dvfs_kthread(void *null)
 			freq = FREQ_STEP_0;
 
 		} else if (cpu_temp >= cpu_dvfs_max_temp_cal) {
-			if (cpu_dvfs_limit_freq == FREQ_STEP_2)
+			if (cpu_dvfs_limit_freq >= FREQ_STEP_2)
 				freq = FREQ_STEP_1;
-			else
+			else if (cpu_dvfs_limit_freq == FREQ_STEP_1)
 				freq = FREQ_STEP_0;
 
 		} else if (cpu_temp <= cpu_dvfs_min_temp) {
 			if (cpu_dvfs_limit_freq == FREQ_STEP_0)
 				freq = FREQ_STEP_1;
-			else
+			else if (cpu_dvfs_limit_freq == FREQ_STEP_1)
 				freq = FREQ_STEP_2;
 		}
 
 		prev_temp = cpu_temp;
-		set_cpu_dvfs_limit(freq);
+		if (freq)
+			set_cpu_dvfs_limit(freq);
 		usleep_range(cpu_dvfs_sleep_time_us, cpu_dvfs_sleep_time_us);
 		continue;
+
 	}
 
 	return 0;
@@ -1042,6 +1048,7 @@ static enum cpuhp_state coretemp_hp_online;
 
 static int __init coretemp_init(void)
 {
+	struct sched_param cpu_param = { .sched_priority = 98 }; // RT priority 1 (low) to 99 (high)
 	int i, err;
 
 	/*
@@ -1081,12 +1088,14 @@ static int __init coretemp_init(void)
 		kobject_put(coretemp_kobject);
 	}
 
+	/* CPU DVFS KTHREAD */
 	cpu_dvfs_thread = kthread_run(cpu_dvfs_kthread, NULL, "cpu_dvfs");
 	if (IS_ERR(cpu_dvfs_thread))
-		pr_err("%s: CPU DVFS: failed to create and start kthread.", __func__);
+		pr_err("%s: CPU DVFS: failed to create and start kthread.\n", __func__);
 
 	set_cpus_allowed_ptr(cpu_dvfs_thread, cpu_all_mask);
-	set_user_nice(cpu_dvfs_thread, MIN_NICE);
+	if (sched_setscheduler(cpu_dvfs_thread, SCHED_FIFO, &cpu_param) < 0)
+		pr_err("%s: CPU DVFS: Failed to set RT priority.\n", __func__);
 
 	return 0;
 
