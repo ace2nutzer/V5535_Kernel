@@ -26,7 +26,7 @@
 #define MAX_FREQUENCY_UP_THRESHOLD		(100)
 #define IO_IS_BUSY				(0)
 #define IGNORE_NICE_LOAD			(0)
-#define DOWN_THRESHOLD_MARGIN			(25)
+#define DOWN_THRESHOLD_MARGIN_MAX		(25)
 #define DEF_BOOST				(1)
 
 #define DEF_FREQUENCY_STEP_0			(1200000)
@@ -112,7 +112,13 @@ static unsigned int od_dbs_update(struct cpufreq_policy *policy)
 
 static void update_down_threshold(struct dbs_data *dbs_data)
 {
-	dbs_data->down_threshold = ((dbs_data->up_threshold * DEF_FREQUENCY_STEP_0 / DEF_FREQUENCY_STEP_1) - DOWN_THRESHOLD_MARGIN);
+	unsigned int down_threshold;
+
+	down_threshold = ((dbs_data->up_threshold * DEF_FREQUENCY_STEP_0 / DEF_FREQUENCY_STEP_1) - DOWN_THRESHOLD_MARGIN_MAX);
+	if (down_threshold > DOWN_THRESHOLD_MARGIN_MAX)
+		down_threshold = DOWN_THRESHOLD_MARGIN_MAX;
+
+	dbs_data->down_threshold = down_threshold;
 	pr_info("[%s] for CPU - new value: %u\n",__func__, dbs_data->down_threshold);
 }
 
