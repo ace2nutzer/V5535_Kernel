@@ -18,10 +18,10 @@
 #include "cpufreq_ondemand.h"
 
 /* On-demand governor macros */
-#define DEF_FREQUENCY_UP_THRESHOLD		(75)
-#define DEF_SAMPLING_DOWN_FACTOR		(25)
+#define DEF_FREQUENCY_UP_THRESHOLD		(90)
+#define DEF_SAMPLING_DOWN_FACTOR		(1)
 #define MAX_SAMPLING_DOWN_FACTOR		(100000)
-#define MICRO_FREQUENCY_UP_THRESHOLD		(75)
+#define MICRO_FREQUENCY_UP_THRESHOLD		(90)
 #define MIN_FREQUENCY_UP_THRESHOLD		(40)
 #define MAX_FREQUENCY_UP_THRESHOLD		(100)
 #define IO_IS_BUSY				(0)
@@ -113,6 +113,7 @@ static unsigned int od_dbs_update(struct cpufreq_policy *policy)
 static void update_down_threshold(struct dbs_data *dbs_data)
 {
 	dbs_data->down_threshold = ((dbs_data->up_threshold * DEF_FREQUENCY_STEP_0 / DEF_FREQUENCY_STEP_1) - DOWN_THRESHOLD_MARGIN);
+
 	pr_info("[%s] for CPU - new value: %u\n",__func__, dbs_data->down_threshold);
 }
 
