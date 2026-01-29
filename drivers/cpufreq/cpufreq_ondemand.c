@@ -19,8 +19,10 @@
 
 /* On-demand governor macros */
 #define DEF_FREQUENCY_UP_THRESHOLD		(75)
-#define DEF_SAMPLING_DOWN_FACTOR		(25)
+#define DEF_SAMPLING_DOWN_FACTOR		(1)
 #define MAX_SAMPLING_DOWN_FACTOR		(100000)
+#define MICRO_SAMPLING_RATE			(10000)
+#define SAMPLING_RATE				(20000)
 #define MICRO_FREQUENCY_UP_THRESHOLD		(75)
 #define MIN_FREQUENCY_UP_THRESHOLD		(40)
 #define MAX_FREQUENCY_UP_THRESHOLD		(100)
@@ -287,8 +289,10 @@ static int od_init(struct dbs_data *dbs_data)
 	if (idle_time != -1ULL) {
 		/* Idle micro accounting is supported. Use finer thresholds */
 		dbs_data->up_threshold = MICRO_FREQUENCY_UP_THRESHOLD;
+		dbs_data->sampling_rate = MICRO_SAMPLING_RATE;
 	} else {
 		dbs_data->up_threshold = DEF_FREQUENCY_UP_THRESHOLD;
+		dbs_data->sampling_rate = SAMPLING_RATE;
 	}
 
 	dbs_data->sampling_down_factor = DEF_SAMPLING_DOWN_FACTOR;
