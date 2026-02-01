@@ -53,6 +53,9 @@ ssize_t sampling_rate_store(struct gov_attr_set *attr_set, const char *buf,
 	if (ret != 1 || sampling_interval < CPUFREQ_DBS_MIN_SAMPLING_INTERVAL)
 		return -EINVAL;
 
+	if (sampling_interval < MIN_SAMPLING_RATE)
+		sampling_interval = MIN_SAMPLING_RATE;
+
 	dbs_data->sampling_rate = sampling_interval;
 
 	/*
@@ -450,6 +453,9 @@ int cpufreq_dbs_governor_init(struct cpufreq_policy *policy)
 	dbs_data->sampling_rate = max_t(unsigned int,
 					CPUFREQ_DBS_MIN_SAMPLING_INTERVAL,
 					cpufreq_policy_transition_delay_us(policy));
+
+	if (dbs_data->sampling_rate < MIN_SAMPLING_RATE)
+		dbs_data->sampling_rate = MIN_SAMPLING_RATE;
 
 	if (!have_governor_per_policy())
 		gov->gdbs_data = dbs_data;
