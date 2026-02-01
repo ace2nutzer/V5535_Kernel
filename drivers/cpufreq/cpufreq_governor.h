@@ -25,6 +25,8 @@
 /* Ondemand Sampling types */
 enum {OD_NORMAL_SAMPLE, OD_SUB_SAMPLE};
 
+#define MIN_SAMPLING_RATE			(10000)
+
 /*
  * Abbreviations:
  * dbs: used as a shortform for demand based switching It helps to keep variable
