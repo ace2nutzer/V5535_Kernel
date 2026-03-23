@@ -25,7 +25,7 @@
 /* Ondemand Sampling types */
 enum {OD_NORMAL_SAMPLE, OD_SUB_SAMPLE};
 
-#define MIN_SAMPLING_RATE			(10000)
+#define MIN_SAMPLING_RATE			(20000)
 
 /*
  * Abbreviations:
