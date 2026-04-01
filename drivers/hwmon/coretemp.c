@@ -61,7 +61,7 @@ MODULE_PARM_DESC(tjmax, "TjMax value in degrees Celsius");
 #define FREQ_STEP_2		(2000000)
 
 static int cpu_dvfs_max_temp_user = 80;
-static unsigned int cpu_dvfs_sleep_time_us = 20 * 1000; /* 20 ms */
+static unsigned int cpu_dvfs_sleep_time_us = 40 * 1000; /* 40 ms */
 static int cpu_dvfs_max_temp_cal = 0;
 static int cpu_dvfs_peak_temp = 0;
 static int cpu_temp = 0;
