@@ -30,6 +30,7 @@
 #include <linux/sched/isolation.h>
 #include <linux/cpufreq.h>
 #include <linux/kthread.h>
+#include <linux/freezer.h>
 #include <linux/delay.h>
 #include <linux/reboot.h>
 #include <linux/pm_qos.h>
@@ -60,8 +61,8 @@ MODULE_PARM_DESC(tjmax, "TjMax value in degrees Celsius");
 #define FREQ_STEP_1		(1600000)
 #define FREQ_STEP_2		(2000000)
 
-static int cpu_dvfs_max_temp_user = 80;
-static unsigned int cpu_dvfs_sleep_time_us = 40 * 1000; /* 40 ms */
+static int cpu_dvfs_max_temp_user = CPU_DVFS_RANGE_MAX_TEMP;
+static unsigned int cpu_dvfs_sleep_time_ms = 40;
 static int cpu_dvfs_max_temp_cal = 0;
 static int cpu_dvfs_peak_temp = 0;
 static int cpu_temp = 0;
@@ -504,7 +505,7 @@ static ssize_t cpu_dvfs_max_temp_show(struct kobject *kobj, struct kobj_attribut
 	offset += sprintf(buf + offset, "[tjmax_hw]\t%d °C\n", tjmax);
 	offset += sprintf(buf + offset, "[cpu_max_freq]\t%u KHz\n", cpu_max_freq);
 	offset += sprintf(buf + offset, "[cpu_dvfs_limit_freq]\t%u KHz\n", cpu_dvfs_limit_freq);
-	offset += sprintf(buf + offset, "[dvfs_sleep_time_ms]\t%u ms\n", cpu_dvfs_sleep_time_us / 1000);
+	offset += sprintf(buf + offset, "[dvfs_sleep_time]\t%u ms\n", cpu_dvfs_sleep_time_ms);
 
 	return strlen(buf);
 }
@@ -530,7 +531,7 @@ ATTR_RW(cpu_dvfs_max_temp);
 
 static ssize_t cpu_dvfs_sleep_time_ms_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%u ms\n", cpu_dvfs_sleep_time_us / 1000);
+	return sprintf(buf, "%u ms\n", cpu_dvfs_sleep_time_ms);
 }
 
 static ssize_t cpu_dvfs_sleep_time_ms_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
@@ -540,7 +541,7 @@ static ssize_t cpu_dvfs_sleep_time_ms_store(struct kobject *kobj, struct kobj_at
 	if (sscanf(buf, "%u", &tmp)) {
 		if (tmp < 1)
 			goto err;
-		cpu_dvfs_sleep_time_us = tmp * 1000;
+		cpu_dvfs_sleep_time_ms = tmp;
 		sanitize_cpu_dvfs(false);
 		return count;
 	}
@@ -619,8 +620,8 @@ static int cpu_dvfs_kthread(void *null)
 
 	while (!kthread_should_stop()) {
 		if (!cpu_max_freq) {
-			pr_warn("%s: CPU DVFS: waiting for cpufreq driver ...\n", __func__);
-			msleep(500);
+			pr_warn_ratelimited("%s: CPU DVFS: waiting for cpufreq driver ...\n", __func__);
+			schedule_timeout_interruptible(msecs_to_jiffies(500));
 			continue;
 		}
 		break;
@@ -634,7 +635,7 @@ static int cpu_dvfs_kthread(void *null)
 		cpu_temp = max(get_cpu_temp(0), get_cpu_temp(1));
 
 		if (cpu_temp == prev_temp) {
-			usleep_range(cpu_dvfs_sleep_time_us, cpu_dvfs_sleep_time_us);
+			schedule_timeout_interruptible(msecs_to_jiffies(cpu_dvfs_sleep_time_ms));
 			continue;
 		}
 
@@ -681,9 +682,7 @@ static int cpu_dvfs_kthread(void *null)
 		prev_temp = cpu_temp;
 		if (freq)
 			set_cpu_dvfs_limit(freq);
-		usleep_range(cpu_dvfs_sleep_time_us, cpu_dvfs_sleep_time_us);
-		continue;
-
+		schedule_timeout_interruptible(msecs_to_jiffies(cpu_dvfs_sleep_time_ms));
 	}
 
 	return 0;
@@ -1048,7 +1047,6 @@ static enum cpuhp_state coretemp_hp_online;
 
 static int __init coretemp_init(void)
 {
-	struct sched_param cpu_param = { .sched_priority = 98 }; // RT priority 1 (low) to 99 (high)
 	int i, err;
 
 	/*
@@ -1094,8 +1092,7 @@ static int __init coretemp_init(void)
 		pr_err("%s: CPU DVFS: failed to create and start kthread.\n", __func__);
 
 	set_cpus_allowed_ptr(cpu_dvfs_thread, cpu_all_mask);
-	if (sched_setscheduler(cpu_dvfs_thread, SCHED_FIFO, &cpu_param) < 0)
-		pr_err("%s: CPU DVFS: Failed to set RT priority.\n", __func__);
+	set_user_nice(cpu_dvfs_thread, MIN_NICE);
 
 	return 0;
 
@@ -1110,6 +1107,12 @@ module_init(coretemp_init)
 static void __exit coretemp_exit(void)
 {
 	int i;
+
+	if (cpu_dvfs_thread) {
+		kthread_stop(cpu_dvfs_thread);
+		cpu_dvfs_thread = NULL;
+		pr_info("%s: CPU DVFS: kthread stopped successfully.\n", __func__);
+	}
 
 	cpuhp_remove_state(coretemp_hp_online);
 	for (i = 0; i < max_zones; i++)
